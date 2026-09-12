@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+android/app/build/
+android/build/
+ios/build/
+ios/Pods/
+
+# React Native
+.buckconfig
+.flowconfig
+.watchmanconfig
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Metro bundler cache
+.metro-cache/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Drug Interaction Checker — RxGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/components.css"/>
+  <style>
+    body { display:flex; flex-direction:column; min-height:100vh; background:var(--rx-bg); }
+    .page-wrap { display:flex; flex:1; min-height:0; }
+
+    .checker-main {
+      flex:1; overflow-y:auto; padding:var(--space-8);
+      display:flex; flex-direction:column; gap:var(--space-6);
+    }
+
+    /* ── Two-column layout ── */
+    .checker-grid {
+      display:grid;
+      grid-template-columns:1.1fr 0.9fr;
+      gap:var(--space-6);
+      align-items:start;
+    }
+
+    /* ── Drug input rows ── */
+    .drug-input-row {
+      display:flex; align-items:center; gap:var(--space-3);
+      margin-bottom:var(--space-3); position:relative;
+    }
+    .drug-input-index {
+      width:28px; height:28px; border-radius:50%;
+      background:var(--rx-blue-light); color:var(--rx-blue);
+      font-size:.8125rem; font-weight:700;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0;
+    }
+    .drug-field { flex:1; }
+    .btn-remove-drug {
+      width:28px; height:28px; border-radius:50%;
+      background:var(--rx-red-light); color:var(--rx-red-dark);
+      border:none; cursor:pointer; font-size:1rem; font-weight:700;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0; transition:background var(--transition);
+    }
+    .btn-remove-drug:hover { background:var(--rx-red); color:#fff; }
+
+    /* ── Suggestions dropdown ── */
+    .drug-suggestions {
+      position:absolute; top:calc(100% + 4px); left:0; right:0;
+      background:var(--rx-surface);
+      border:1px solid var(--rx-border);
+      border-radius:var(--radius-md);
+      box-shadow:var(--shadow-md);
+      z-index:var(--z-dropdown);
+      display:none;
+      overflow:hidden;
+    }
+    .suggestion-item {
+      padding:9px 14px; font-size:.875rem; cursor:pointer;
+      transition:background var(--transition);
+    }
+    .suggestion-item:hover { background:var(--rx-blue-xlight); color:var(--rx-blue); }
+
+    /* ── Patient flags ── */
+    .flags-row {
+      display:flex; flex-wrap:wrap; gap:var(--space-4);
+      align-items:center; padding:var(--space-4);
+      background:var(--rx-surface-alt); border-radius:var(--radius-md);
+      border:1px solid var(--rx-border);
+      margin-top:var(--space-3);
+    }
+    .flag-item {
+      display:flex; align-items:center; gap:.5rem;
+      font-size:.875rem; font-weight:500; cursor:pointer;
+      color:var(--rx-muted);
+    }
+    .flag-item input[type="checkbox"] { width:15px; height:15px; cursor:pointer; }
+    .flag-sep { width:1px; height:20px; background:var(--rx-border); }
+    .flag-age-wrap { display:flex; align-items:center; gap:.5rem; font-size:.875rem; color:var(--rx-muted); }
+    .flag-age-input {
+      width:72px; padding:6px 10px; border:1.5px solid var(--rx-border);
+      border-radius:var(--radius-sm); font-family:var(--font-sans);
+      font-size:.875rem; outline:none; background:var(--rx-surface);
+      color:var(--rx-text);
+    }
+    .flag-age-input:focus { border-color:var(--rx-blue); }
+
+    /* ── Summary bar ── */
+    #summaryBar {
+      display:none; align-items:center; gap:var(--space-3);
+      padding:var(--space-4) var(--space-5);
+      border-radius:var(--radius-lg); border:1px solid;
+      margin-bottom:var(--space-4);
+    }
+
+    /* ── Results panel ── */
+    #resultsPanel { display:none; }
+
+    /* ── No interactions state ── */
+    #noInteractions {
+      display:none; text-align:center; padding:3rem var(--space-8);
+    }
+
+    /* ── Monograph panel ── */
+    #monographPanel { display:none; }
+    .mono-section { margin-bottom:var(--space-4); }
+    .mono-label {
+      font-size:.75rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.5px; color:var(--rx-muted); margin-bottom:.4rem;
+    }
+    .mono-body { font-size:.875rem; line-height:1.65; color:var(--rx-text-secondary); }
+    .mono-list {
+      padding-left:1.1rem; font-size:.875rem;
+      display:flex; flex-direction:column; gap:.35rem;
+      color:var(--rx-text-secondary);
+    }
+
+    /* ── History rows ── */
+    .history-row {
+      display:flex; align-items:center; gap:var(--space-3);
+      padding:var(--space-3) var(--space-3);
+      border-radius:var(--radius-md); cursor:pointer;
+      border:1px solid var(--rx-border); margin-bottom:var(--space-2);
+      transition:all var(--transition); background:var(--rx-surface);
+    }
+    .history-row:hover {
+      border-color:var(--rx-blue); background:var(--rx-blue-xlight);
+    }
+
+    /* ── Common pairs quick-check ── */
+    .quick-pair {
+      display:flex; align-items:center; gap:.625rem;
+      padding:var(--space-3) var(--space-4);
+      background:var(--rx-surface); border:1px solid var(--rx-border);
+      border-radius:var(--radius-md); cursor:pointer;
+      transition:all var(--transition); font-size:.8125rem;
+    }
+    .quick-pair:hover { border-color:var(--rx-blue); background:var(--rx-blue-xlight); }
+    .quick-pair-drugs { font-weight:600; }
+    .quick-pair-note  { color:var(--rx-muted); font-size:.75rem; }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size:1rem; font-weight:700;
+      display:flex; align-items:center; gap:.625rem;
+      margin-bottom:var(--space-5);
+      padding-bottom:var(--space-3);
+      border-bottom:1px solid var(--rx-border);
+    }
+
+    @media(max-width:960px)  { .checker-grid { grid-template-columns:1fr; } }
+    @media(max-width:768px)  { .checker-main { padding:var(--space-4); gap:var(--space-4); } }
+  </style>
+</head>
+<body>
+
+<div id="navbarMount"></div>
+
+<div class="page-wrap">
+  <div id="sidebarMount"></div>
+
+  <main class="checker-main">
+
+    <!-- Heading -->
+    <div>
+      <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:.25rem">Drug Interaction Checker</h1>
+      <p style="font-size:.875rem;color:var(--rx-muted)">
+        Check interactions between multiple medications using the EMDEX Nigeria drug database
+        and OpenFDA brand registry. Enter at least 2 drugs.
+      </p>
+    </div>
+
+    <div class="checker-grid">
+
+      <!-- ── Left column: inputs + results ── -->
+      <div style="display:flex;flex-direction:column;gap:var(--space-6)">
+
+        <!-- Drug input card -->
+        <div class="card">
+          <div class="section-title">💊 Drugs to Check</div>
+
+          <!-- Dynamic drug input rows -->
+          <div id="drugInputs">
+            <!-- Rendered by checker.js DrugInputs.render() -->
+          </div>
+
+          <!-- Add drug button -->
+          <button type="button" class="btn btn-outline btn-sm" id="addDrugBtn"
+                  style="margin-bottom:var(--space-4)">
+            + Add Another Drug
+          </button>
+
+          <!-- Patient flags -->
+          <div class="flags-row">
+            <span style="font-size:.8125rem;font-weight:600;color:var(--rx-muted)">
+              Patient flags:
+            </span>
+            <label class="flag-item">
+              <input type="checkbox" id="flagPregnant"/>
+              🤰 Pregnant
+            </label>
+            <div class="flag-sep"></div>
+            <div class="flag-age-wrap">
+              <label for="patientAge">Age:</label>
+              <input class="flag-age-input" type="number" id="patientAge"
+                     placeholder="yrs" min="0" max="120"/>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex;gap:.75rem;margin-top:var(--space-5)">
+            <button class="btn btn-primary" id="checkBtn" style="flex:1">
+              🔍 Check Interactions
+            </button>
+            <button class="btn btn-outline" id="resetCheckerBtn" title="Reset">↺</button>
+          </div>
+        </div>
+
+        <!-- Results panel -->
+        <div id="resultsPanel">
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:var(--space-5) var(--space-5) 0">
+              <div class="section-title">📋 Interaction Report</div>
+            </div>
+
+            <!-- Summary banner -->
+            <div id="summaryBar" style="margin:0 var(--space-5) var(--space-4)"></div>
+
+            <!-- No interactions state -->
+            <div id="noInteractions" style="padding:0 var(--space-5) var(--space-5)">
+              <div style="background:var(--rx-green-light);border:1px solid #A5D9C5;
+                          border-radius:var(--radius-lg);padding:var(--space-6);text-align:center">
+                <div style="font-size:2.5rem;margin-bottom:var(--space-3)">✅</div>
+                <div style="font-size:1rem;font-weight:700;color:var(--rx-green-dark);margin-bottom:.5rem">
+                  No Interactions Found
+                </div>
+                <div style="font-size:.875rem;color:var(--rx-green-dark);line-height:1.6">
+                  No known interactions were detected between the checked drugs.
+                  Always confirm with a PCN-registered pharmacist before dispensing.
+                </div>
+              </div>
+            </div>
+
+            <!-- Interaction cards -->
+            <div id="interactionCards" style="padding:0 var(--space-5) var(--space-5)"></div>
+
+            <!-- Disclaimer -->
+            <div style="padding:var(--space-4) var(--space-5);
+                        border-top:1px solid var(--rx-border);
+                        background:var(--rx-surface-alt)">
+              <p style="font-size:.75rem;color:var(--rx-muted);line-height:1.6;margin:0">
+                ⚕️ This tool is for informational purposes only. Results are sourced from
+                EMDEX Nigeria and OpenFDA. Always verify interactions with a qualified
+                PCN-registered pharmacist or MDCN-registered physician before making
+                clinical decisions.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drug monograph panel -->
+        <div id="monographPanel">
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;
+                        margin-bottom:var(--space-5)">
+              <div class="section-title" style="margin:0;border:none;padding:0">
+                📚 Drug Monograph
+              </div>
+              <button class="btn btn-outline btn-sm"
+                      onclick="document.getElementById('monographPanel').style.display='none'">
+                Close
+              </button>
+            </div>
+            <div id="monographContent"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── Right column: quick pairs, monograph lookup, history ── -->
+      <div style="display:flex;flex-direction:column;gap:var(--space-6)">
+
+        <!-- Common interaction pairs -->
+        <div class="card">
+          <div class="section-title">⚡ Common Checks</div>
+          <div style="display:flex;flex-direction:column;gap:var(--space-2)">
+
+            <div class="quick-pair" onclick="quickCheck(['Warfarin','Aspirin'])">
+              <span style="font-size:1.1rem">⚠️</span>
+              <div>
+                <div class="quick-pair-drugs">Warfarin + Aspirin</div>
+                <div class="quick-pair-note">Major — bleeding risk</div>
+              </div>
+            </div>
+
+            <div class="quick-pair" onclick="quickCheck(['Metformin','Alcohol'])">
+              <span style="font-size:1.1rem">⚠️</span>
+              <div>
+                <div class="quick-pair-drugs">Metformin + Alcohol</div>
+                <div class="quick-pair-note">Moderate — lactic acidosis</div>
+              </div>
+            </div>
+
+            <div class="quick-pair" onclick="quickCheck(['Ibuprofen','Lisinopril'])">
+              <span style="font-size:1.1rem">⚠️</span>
+              <div>
+                <div class="quick-pair-drugs">Ibuprofen + Lisinopril</div>
+                <div class="quick-pair-note">Moderate — reduced effect</div>
+              </div>
+            </div>
+
+            <div class="quick-pair" onclick="quickCheck(['Ibuprofen','Diclofenac'])">
+              <span style="font-size:1.1rem">🔁</span>
+              <div>
+                <div class="quick-pair-drugs">Ibuprofen + Diclofenac</div>
+                <div class="quick-pair-note">Duplicate NSAID therapy</div>
+              </div>
+            </div>
+
+            <div class="quick-pair" onclick="quickCheck(['Ciprofloxacin','Antacid'])">
+              <span style="font-size:1.1rem">⚠️</span>
+              <div>
+                <div class="quick-pair-drugs">Ciprofloxacin + Antacid</div>
+                <div class="quick-pair-note">Minor — reduced absorption</div>
+              </div>
+            </div>
+
+            <div class="quick-pair" onclick="quickCheck(['Amoxicillin','Metronidazole','Omeprazole'])">
+              <span style="font-size:1.1rem">🔍</span>
+              <div>
+                <div class="quick-pair-drugs">H. Pylori Triple Therapy</div>
+                <div class="quick-pair-note">Amox + Metro + Omeprazole</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Drug monograph lookup -->
+        <div class="card">
+          <div class="section-title">📚 Drug Monograph Lookup</div>
+          <p style="font-size:.8125rem;color:var(--rx-muted);margin-bottom:var(--space-4);line-height:1.6">
+            Search the EMDEX database for full drug information: indications,
+            dosage, contraindications, pregnancy category, and Nigerian brand names.
+          </p>
+          <form id="monographForm" style="display:flex;gap:.625rem">
+            <input class="form-control" type="text" id="monographInput"
+                   placeholder="e.g. Metformin" autocomplete="off"
+                   style="flex:1"/>
+            <button type="submit" class="btn btn-primary btn-sm">Look up</button>
+          </form>
+          <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:var(--space-3)">
+            <span style="font-size:.75rem;color:var(--rx-muted);width:100%;margin-bottom:.25rem">
+              Quick lookup:
+            </span>
+            
+            ${['Metformin','Warfarin','Paracetamol','Artemether','Lisinopril']
+              .map(d => `<button class="quick-chip" style="font-size:.75rem"
+                                onclick="lookupMonograph('${d}');
+                                         document.getElementById('monographInput').value='${d}'"
+                         >${d}</button>`).join('')}
+          
+                         </div>
+        </div>
+
+        <!-- Session history -->
+        <div class="card">
+          <div class="section-title">🕐 Recent Checks</div>
+          <p style="font-size:.8125rem;color:var(--rx-muted);margin-bottom:var(--space-4)">
+            Your checks in this session. Click any to restore.
+          </p>
+          <div id="historyList"></div>
+          <div id="historyEmpty" style="display:block">
+            <div style="text-align:center;padding:1.5rem 0;color:var(--rx-muted)">
+              <div style="font-size:1.5rem;margin-bottom:.5rem">🔍</div>
+              <div style="font-size:.875rem">No checks yet this session</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Source attribution -->
+        <div class="card" style="padding:var(--space-4)">
+          <div style="font-size:.8125rem;font-weight:600;margin-bottom:var(--space-3);
+                      color:var(--rx-muted)">DATA SOURCES</div>
+          <div style="display:flex;flex-direction:column;gap:.625rem">
+            <div style="display:flex;align-items:center;gap:.625rem;font-size:.8125rem">
+              <span class="badge badge-info">EMDEX</span>
+              Nigerian Brand Registry (generics → brands)
+              </div>
+            <div style="display:flex;align-items:center;gap:.625rem;font-size:.8125rem">
+              <span class="badge badge-success">OpenFDA</span>
+              Nigerian Drug Monograph & Interaction Database
+
+            </div>
+            <div style="display:flex;align-items:center;gap:.625rem;font-size:.8125rem">
+              <span class="badge badge-neutral">Gemini AI</span>
+              Contextual analysis &amp; recommendations
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/checker.js"></script>
+<script>
+'use strict';
+
+/* ── Auth guard: this page is not available to unregistered visitors ── */
+if (!RxGuard.requireAuth()) { /* redirected to login */ }
+
+/* ── Quick-check helper ── */
+function quickCheck(drugs) {
+  CheckerState.drugs = drugs.map(d => d);
+  DrugInputs.render();
+
+  // Fill values into rendered inputs
+  drugs.forEach((d, i) => {
+    const f = document.getElementById(`drugField${i}`);
+    if (f) f.value = d;
+  });
+
+  submitCheck();
+}
+
+/* ── Expose for inline onclick in monograph quick-lookup ── */
+function lookupMonograph(name) {
+  CheckerPage.lookupMonograph(name);
+}
+</script>
+</body>
+</html>

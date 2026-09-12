@@ -1,0 +1,112 @@
+# =============================================================
+# RxGuard — Laravel Backend Dockerfile
+# Base: PHP 8.3 FPM Alpine
+# =============================================================
+
+# ── Stage 1: Composer dependencies ──────────────────────────
+FROM composer:2.7 AS vendor
+
+WORKDIR /app
+
+COPY backend/composer.json backend/composer.lock ./
+
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-progress \
+    --no-autoloader \
+    --ignore-platform-reqs
+
+COPY backend/ .
+
+RUN composer dump-autoload \
+    --optimize \
+    --no-dev \
+    --no-interaction
+
+# ── Stage 2: Runtime image ───────────────────────────────────
+FROM php:8.3-fpm-alpine AS runtime
+
+# System dependencies
+RUN apk add --no-cache \
+    bash \
+    curl \
+    git \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    libwebp-dev \
+    freetype-dev \
+    libzip-dev \
+    oniguruma-dev \
+    icu-dev \
+    postgresql-dev \
+    linux-headers \
+    $PHPIZE_DEPS \
+    tesseract-ocr \
+    tesseract-ocr-data-eng \
+    ghostscript \
+    imagemagick \
+    imagemagick-dev \
+    imagemagick-libs
+
+# PHP extensions
+RUN docker-php-ext-configure gd \
+        --with-freetype \
+        --with-jpeg \
+        --with-webp && \
+    docker-php-ext-install -j$(nproc) \
+        pdo_pgsql \
+        pgsql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip \
+        intl \
+        opcache
+
+# Redis + Imagick extensions via PECL
+# (Imagick is used only to rasterize PDF pages to images for Tesseract —
+#  the actual OCR engine is the tesseract-ocr CLI installed above, which
+#  is free/open-source with no usage limits or API costs.)
+RUN pecl install redis imagick && \
+    docker-php-ext-enable redis imagick
+
+# PHP-FPM and OPcache tuning
+COPY docker/php/php.ini         /usr/local/etc/php/conf.d/rxguard.ini
+COPY docker/php/opcache.ini     /usr/local/etc/php/conf.d/opcache.ini
+COPY docker/php/php-fpm.conf    /usr/local/etc/php-fpm.d/www.conf
+
+# Non-root user
+RUN addgroup -g 1000 rxguard && \
+    adduser  -u 1000 -G rxguard -s /bin/bash -D rxguard
+
+WORKDIR /var/www/html
+
+# Copy application
+COPY --from=vendor --chown=rxguard:rxguard /app .
+
+# Storage and cache directories
+RUN mkdir -p \
+        storage/logs \
+        storage/framework/cache \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/app/public \
+        bootstrap/cache && \
+    chown -R rxguard:rxguard \
+        storage \
+        bootstrap/cache && \
+    chmod -R 775 \
+        storage \
+        bootstrap/cache
+
+USER rxguard
+
+EXPOSE 9000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD php-fpm -t || exit 1
+
+CMD ["php-fpm"]

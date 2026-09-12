@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Healthcare Assistant — RxGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/components.css"/>
+  <style>
+    body { display:flex; flex-direction:column; min-height:100vh; background:var(--rx-bg); }
+    .page-wrap { display:flex; flex:1; min-height:0; overflow:hidden; }
+
+    /* ── Chat layout ── */
+    .chat-layout {
+      flex:1; display:flex; min-height:0; overflow:hidden;
+    }
+
+    /* ── Sessions sidebar ── */
+    .sessions-sidebar {
+      width:260px; flex-shrink:0;
+      background:var(--rx-surface);
+      border-right:1px solid var(--rx-border);
+      display:flex; flex-direction:column;
+      overflow:hidden;
+    }
+    .sessions-sidebar-header {
+      padding:var(--space-4) var(--space-5);
+      border-bottom:1px solid var(--rx-border);
+      display:flex; align-items:center; justify-content:space-between;
+      flex-shrink:0;
+    }
+    .sessions-sidebar-title {
+      font-size:.875rem; font-weight:700; color:var(--rx-text);
+    }
+    .session-list-wrap {
+      flex:1; overflow-y:auto; padding:var(--space-3);
+    }
+    .session-item {
+      display:flex; align-items:center; gap:var(--space-2);
+      padding:var(--space-3) var(--space-3);
+      border-radius:var(--radius-md); cursor:pointer;
+      transition:background var(--transition);
+      position:relative;
+    }
+    .session-item:hover             { background:var(--rx-blue-xlight); }
+    .session-item.active            { background:var(--rx-blue-light); }
+    .session-item-icon              { font-size:1rem; flex-shrink:0; }
+    .session-item-title {
+      font-size:.8125rem; font-weight:600;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .session-item-preview {
+      font-size:.75rem; color:var(--rx-muted);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      margin-top:1px;
+    }
+    .session-delete-btn {
+      display:none; position:absolute; right:8px; top:50%; transform:translateY(-50%);
+      background:none; border:none; cursor:pointer;
+      color:var(--rx-muted); font-size:1rem; padding:2px 4px;
+      border-radius:4px; line-height:1;
+    }
+    .session-item:hover .session-delete-btn { display:block; }
+    .session-delete-btn:hover { color:var(--rx-red); background:var(--rx-red-light); }
+
+    .sessions-footer {
+      padding:var(--space-3) var(--space-4);
+      border-top:1px solid var(--rx-border);
+      flex-shrink:0;
+    }
+
+    /* ── Main chat area ── */
+    .chat-main {
+      flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden;
+    }
+
+    /* ── Chat header bar ── */
+    .chat-header {
+      padding:var(--space-4) var(--space-6);
+      border-bottom:1px solid var(--rx-border);
+      background:var(--rx-surface);
+      display:flex; align-items:center; justify-content:space-between;
+      flex-shrink:0;
+    }
+    .chat-header-left { display:flex; align-items:center; gap:var(--space-3); }
+    .chat-header-avatar {
+      width:40px; height:40px; border-radius:10px;
+      background:linear-gradient(135deg,var(--rx-blue),var(--rx-green));
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.1rem; font-weight:800; color:#fff; flex-shrink:0;
+    }
+    .chat-header-name { font-size:.9375rem; font-weight:700; }
+    .chat-header-status {
+      font-size:.75rem; color:var(--rx-green);
+      display:flex; align-items:center; gap:4px;
+    }
+    .status-dot {
+      width:7px; height:7px; border-radius:50%;
+      background:var(--rx-green); flex-shrink:0;
+    }
+    .chat-header-actions { display:flex; gap:.5rem; }
+
+    /* ── Feed ── */
+    .chat-feed-wrap {
+      flex:1; overflow-y:auto; padding:var(--space-6);
+      display:flex; flex-direction:column; gap:var(--space-4);
+      scroll-behavior:smooth;
+    }
+
+    /* ── Quick chips section ── */
+    #quickChipsWrap {
+      padding:0 var(--space-6) var(--space-2);
+      flex-shrink:0;
+    }
+    #quickChipsWrap .chips-label {
+      font-size:.75rem; font-weight:600; color:var(--rx-muted);
+      text-transform:uppercase; letter-spacing:.5px;
+      margin-bottom:var(--space-2);
+    }
+    #quickChips {
+      display:flex; flex-wrap:wrap; gap:var(--space-2);
+    }
+
+    /* ── Input bar ── */
+    .chat-input-bar {
+      padding:var(--space-3) var(--space-6) var(--space-5);
+      background:var(--rx-surface);
+      border-top:1px solid var(--rx-border);
+      flex-shrink:0;
+    }
+    .chat-input-row { border-top:none; padding:0; }
+    .chat-input { background:var(--rx-bg); }
+
+    .input-hint {
+      font-size:.75rem; color:var(--rx-muted);
+      margin-top:var(--space-2); text-align:center;
+    }
+
+    /* ── Notice bar (for unauthenticated guests) ── */
+    .guest-notice {
+      margin:var(--space-3) var(--space-6) 0;
+      padding:var(--space-3) var(--space-4);
+      background:var(--rx-amber-light); border:1px solid #EDD098;
+      border-radius:var(--radius-md);
+      font-size:.8125rem; color:var(--rx-amber-dark);
+      display:flex; align-items:center; gap:.625rem;
+    }
+
+    /* ── Disclaimer banner ── */
+    .disclaimer-bar {
+      padding:var(--space-3) var(--space-6);
+      background:var(--rx-blue-xlight);
+      border-bottom:1px solid var(--rx-border);
+      font-size:.75rem; color:var(--rx-muted);
+      display:flex; align-items:center; gap:.625rem;
+      flex-shrink:0;
+    }
+
+    /* Mobile: hide sessions sidebar, show toggle */
+    @media(max-width:900px) {
+      .sessions-sidebar { display:none; }
+      .sessions-sidebar.open {
+        display:flex; position:fixed;
+        top:0; bottom:0; left:0; z-index:var(--z-modal);
+        box-shadow:var(--shadow-lg); width:280px;
+      }
+      .chat-feed-wrap  { padding:var(--space-4); }
+      .chat-input-bar  { padding:var(--space-3) var(--space-4) var(--space-4); }
+      #quickChipsWrap  { padding:0 var(--space-4) var(--space-2); }
+      .chat-header     { padding:var(--space-3) var(--space-4); }
+      .disclaimer-bar  { padding:var(--space-2) var(--space-4); }
+    }
+    @media(max-width:480px) {
+      .chat-header-name  { font-size:.875rem; }
+      #sessionTitle      { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- App navbar -->
+<div id="navbarMount"></div>
+
+<div class="page-wrap">
+  <!-- RxGuard dashboard sidebar -->
+  <div id="sidebarMount"></div>
+
+  <!-- Chat layout -->
+  <div class="chat-layout">
+
+    <!-- ── Sessions sidebar ── -->
+    <div class="sessions-sidebar" id="sessionsSidebar">
+      <div class="sessions-sidebar-header">
+        <span class="sessions-sidebar-title">💬 Conversations</span>
+        <button class="btn btn-primary btn-sm" id="newChatBtn">+ New</button>
+      </div>
+
+      <div class="session-list-wrap">
+        <div id="sessionList"></div>
+        <div id="sessionListEmpty"
+             style="text-align:center;padding:2rem .5rem;color:var(--rx-muted)">
+          <div style="font-size:1.5rem;margin-bottom:.5rem">💬</div>
+          <div style="font-size:.8125rem">
+            No saved conversations yet.<br/>
+            Start chatting to create one.
+          </div>
+        </div>
+      </div>
+
+      <div class="sessions-footer">
+        <div style="font-size:.75rem;color:var(--rx-muted);line-height:1.6">
+          🔒 All conversations are private and NDPR-compliant. Responses are grounded
+          in verified Nigerian pharmaceutical data.
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Main chat area ── -->
+    <div class="chat-main">
+
+      <!-- Chat header -->
+      <div class="chat-header">
+        <div class="chat-header-left">
+          <!-- Mobile sessions toggle -->
+          <button id="sessionToggle"
+                  style="display:none;background:none;border:none;cursor:pointer;
+                         font-size:1.2rem;padding:4px;color:var(--rx-muted)"
+                  onclick="toggleSessionsSidebar()">☰</button>
+
+          <div class="chat-header-avatar">Rx</div>
+          <div>
+            <div class="chat-header-name">RxGuard AI Assistant</div>
+            <div class="chat-header-status">
+              <div class="status-dot"></div>
+              Grounded in EMDEX + OpenFDA · <span id="sessionTitle">New conversation</span>
+            </div>
+          </div>
+        </div>
+        <div class="chat-header-actions">
+          <button class="btn btn-outline btn-sm" id="newChatBtnHeader"
+                  onclick="ChatbotPage.newSession()" title="New conversation">
+            + New Chat
+          </button>
+        </div>
+      </div>
+
+      <!-- Disclaimer bar -->
+      <div class="disclaimer-bar">
+        <span>ℹ️</span>
+        <span>
+          For information only — not a substitute for professional medical advice.
+          Always consult a PCN-registered pharmacist or MDCN-registered physician
+          for clinical decisions.
+        </span>
+      </div>
+
+      <!-- Chat feed -->
+      <div class="chat-feed-wrap" id="chatFeed" role="log" aria-live="polite" aria-label="Chat messages">
+        <!-- Messages appended by chatbot.js -->
+      </div>
+
+      <!-- Quick chips -->
+      <div id="quickChipsWrap">
+        <div class="chips-label">Suggested questions</div>
+        <div id="quickChips">
+          <!-- Rendered by chatbot.js renderQuickChips() -->
+        </div>
+      </div>
+
+      <!-- Input bar -->
+      <div class="chat-input-bar">
+        <div class="chat-input-row">
+          <textarea class="chat-input"
+                    id="chatInput"
+                    placeholder="Ask about medications, interactions, nutrition, or lifestyle…"
+                    rows="1"
+                    aria-label="Chat message input"
+                    maxlength="2000"></textarea>
+          <button class="chat-send-btn" id="sendBtn" aria-label="Send message">➤</button>
+        </div>
+        <div class="input-hint">
+          Press <kbd style="background:var(--rx-gray-100);border:1px solid var(--rx-border);
+                            border-radius:4px;padding:1px 5px;font-size:.7rem">Enter</kbd>
+          to send · <kbd style="background:var(--rx-gray-100);border:1px solid var(--rx-border);
+                                border-radius:4px;padding:1px 5px;font-size:.7rem">Shift+Enter</kbd>
+          for new line
+        </div>
+      </div>
+
+    </div><!-- end chat-main -->
+  </div><!-- end chat-layout -->
+</div>
+
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/chatbot.js"></script>
+<script>
+'use strict';
+
+/* ── Auth guard: this page is not available to unregistered visitors ── */
+if (!RxGuard.requireAuth()) { /* redirected to login */ }
+
+document.addEventListener('DOMContentLoaded', () => {
+  /* Mobile: show sessions toggle button */
+  if (window.innerWidth <= 900) {
+    const toggle = document.getElementById('sessionToggle');
+    if (toggle) toggle.style.display = 'block';
+  }
+});
+
+/* ── Mobile sessions sidebar toggle ── */
+function toggleSessionsSidebar() {
+  const sidebar = document.getElementById('sessionsSidebar');
+  sidebar.classList.toggle('open');
+}
+
+/* Close mobile sidebar on outside click */
+document.addEventListener('click', e => {
+  const sidebar = document.getElementById('sessionsSidebar');
+  const toggle  = document.getElementById('sessionToggle');
+  if (
+    sidebar?.classList.contains('open') &&
+    !sidebar.contains(e.target) &&
+    !toggle?.contains(e.target)
+  ) {
+    sidebar.classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>

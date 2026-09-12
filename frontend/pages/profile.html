@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Profile — RxGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/components.css"/>
+  <style>
+    body { display:flex; flex-direction:column; min-height:100vh; background:var(--rx-bg); }
+    .page-wrap { display:flex; flex:1; min-height:0; }
+
+    .profile-main {
+      flex:1; overflow-y:auto;
+      padding:var(--space-8);
+      display:flex; flex-direction:column; gap:var(--space-6);
+      max-width:860px;
+    }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size:1rem; font-weight:700;
+      display:flex; align-items:center; gap:.625rem;
+      margin-bottom:var(--space-5);
+      padding-bottom:var(--space-3);
+      border-bottom:1px solid var(--rx-border);
+    }
+
+    /* ── Avatar block ── */
+    .avatar-block {
+      display:flex; align-items:center; gap:var(--space-6); flex-wrap:wrap;
+    }
+    .avatar-ring {
+      position:relative; flex-shrink:0;
+    }
+    .avatar-img {
+      width:96px; height:96px; border-radius:50%;
+      object-fit:cover;
+      border:3px solid var(--rx-border);
+      background:var(--rx-blue-light);
+      display:flex; align-items:center; justify-content:center;
+      font-size:2rem; font-weight:700; color:var(--rx-blue);
+      overflow:hidden;
+    }
+    .avatar-img img { width:100%; height:100%; object-fit:cover; }
+    .avatar-edit-btn {
+      position:absolute; bottom:0; right:0;
+      width:28px; height:28px; border-radius:50%;
+      background:var(--rx-blue); color:#fff;
+      border:2px solid var(--rx-surface);
+      display:flex; align-items:center; justify-content:center;
+      font-size:.75rem; cursor:pointer;
+      transition:background var(--transition);
+    }
+    .avatar-edit-btn:hover { background:var(--rx-blue-dark); }
+    .avatar-input { display:none; }
+    .avatar-info h3 { font-size:1.125rem; font-weight:700; margin-bottom:.25rem; }
+    .avatar-info p  { font-size:.875rem; color:var(--rx-muted); margin-bottom:.75rem; }
+    .avatar-info-meta {
+      display:flex; flex-wrap:wrap; gap:.5rem; align-items:center;
+    }
+
+    /* ── Verification badge ── */
+    .verified-pill {
+      display:inline-flex; align-items:center; gap:4px;
+      padding:4px 12px; border-radius:999px;
+      font-size:.75rem; font-weight:600;
+    }
+    .verified-pill.yes { background:var(--rx-green-light); color:var(--rx-green-dark); }
+    .verified-pill.no  { background:var(--rx-amber-light); color:var(--rx-amber-dark); }
+
+    /* ── Tab nav (vertical sections) ── */
+    .profile-tabs {
+      display:flex; gap:2px;
+      border-bottom:2px solid var(--rx-border);
+      margin-bottom:var(--space-6);
+    }
+    .profile-tab {
+      padding:10px 18px; border:none; background:none;
+      font-family:var(--font-sans); font-size:.875rem; font-weight:500;
+      color:var(--rx-muted); cursor:pointer;
+      border-bottom:2px solid transparent; margin-bottom:-2px;
+      transition:all var(--transition);
+    }
+    .profile-tab:hover   { color:var(--rx-text); }
+    .profile-tab.active  { color:var(--rx-blue); border-bottom-color:var(--rx-blue); }
+
+    /* ── Professional panel ── */
+    .pro-status-bar {
+      display:flex; align-items:center; gap:var(--space-4);
+      padding:var(--space-4) var(--space-5);
+      border-radius:var(--radius-lg); margin-bottom:var(--space-5);
+      border:1px solid;
+    }
+    .pro-status-bar.verified   { background:var(--rx-green-light); border-color:#A5D9C5; }
+    .pro-status-bar.unverified { background:var(--rx-amber-light); border-color:#EDD098; }
+    .pro-status-icon { font-size:1.5rem; flex-shrink:0; }
+    .pro-status-body h4 { font-size:.9375rem; font-weight:600; margin-bottom:2px; }
+    .pro-status-body p  { font-size:.8125rem; color:var(--rx-text-secondary); }
+
+    /* ── Password section ── */
+    .pwd-row {
+      display:grid; grid-template-columns:1fr 1fr; gap:var(--space-4);
+    }
+    .pwd-strength-wrap { margin-top:var(--space-2); }
+    .pwd-strength-bar  {
+      height:4px; border-radius:4px;
+      background:var(--rx-gray-200); overflow:hidden; margin-bottom:4px;
+    }
+    .pwd-strength-fill { height:100%; border-radius:4px; transition:width .3s,background .3s; width:0%; }
+    .pwd-strength-label{ font-size:.75rem; }
+
+    .input-with-action { position:relative; }
+    .input-with-action .form-control { padding-right:44px; }
+    .input-action-btn {
+      position:absolute; right:12px; top:50%; transform:translateY(-50%);
+      background:none; border:none; cursor:pointer; color:var(--rx-muted);
+      font-size:.875rem; padding:4px;
+    }
+    .input-action-btn:hover { color:var(--rx-text); }
+
+    /* ── Danger zone ── */
+    .danger-zone {
+      border:1px solid #F0AFAF; border-radius:var(--radius-lg);
+      padding:var(--space-5); background:var(--rx-red-light);
+    }
+    .danger-zone h4 { font-size:.9375rem; font-weight:700; color:var(--rx-red-dark); margin-bottom:.35rem; }
+    .danger-zone p  { font-size:.8125rem; color:var(--rx-red-dark); margin-bottom:var(--space-4); line-height:1.6; }
+
+    /* ── Stats strip ── */
+    .stats-strip {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
+      background:var(--rx-border); border-radius:var(--radius-lg); overflow:hidden;
+    }
+    .stats-cell {
+      background:var(--rx-surface); padding:var(--space-5);
+      text-align:center;
+    }
+    .stats-cell-value { font-size:1.5rem; font-weight:800; color:var(--rx-blue); }
+    .stats-cell-label { font-size:.75rem; color:var(--rx-muted); margin-top:2px; }
+
+    /* ── Session item ── */
+    .session-item {
+      display:flex; align-items:center; gap:var(--space-3);
+      padding:var(--space-4); background:var(--rx-surface-alt);
+      border:1px solid var(--rx-border); border-radius:var(--radius-md);
+      margin-bottom:var(--space-3);
+    }
+    .session-icon  { font-size:1.25rem; flex-shrink:0; }
+    .session-body  { flex:1; min-width:0; }
+    .session-label { font-size:.875rem; font-weight:600; }
+    .session-meta  { font-size:.75rem; color:var(--rx-muted); margin-top:2px; }
+
+    /* ── Tab panels ── */
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+
+    @media(max-width:768px) {
+      .profile-main { padding:var(--space-4); }
+      .pwd-row { grid-template-columns:1fr; }
+      .stats-strip { grid-template-columns:1fr 1fr; }
+      .avatar-block { flex-direction:column; align-items:flex-start; }
+      .profile-tabs { overflow-x:auto; white-space:nowrap; }
+    }
+    @media(max-width:480px) {
+      .stats-strip { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="navbarMount"></div>
+
+<div class="page-wrap">
+  <div id="sidebarMount"></div>
+
+  <main class="profile-main">
+
+    <!-- ── Page heading ── -->
+    <div>
+      <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:.25rem">My Profile</h1>
+      <p style="font-size:.875rem;color:var(--rx-muted)">
+        Manage your account information, security, and preferences.
+      </p>
+    </div>
+
+    <!-- ── Avatar + identity card ── -->
+    <div class="card">
+      <div class="avatar-block">
+
+        <!-- Avatar -->
+        <div class="avatar-ring">
+          <div class="avatar-img" id="avatarDisplay">
+            <span id="avatarInitial">?</span>
+          </div>
+          <label class="avatar-edit-btn" for="avatarInput" title="Change photo">✏️</label>
+          <input class="avatar-input" type="file" id="avatarInput"
+                 accept="image/jpeg,image/png,image/webp"/>
+        </div>
+
+        <!-- Name + meta -->
+        <div class="avatar-info" style="flex:1">
+          <h3 id="profileName">Loading…</h3>
+          <p id="profileEmail" style="margin-bottom:.5rem"></p>
+          <div class="avatar-info-meta">
+            <span id="profileRoleBadge"></span>
+            <span id="profileVerifiedPill"></span>
+            <span id="profileMemberSince" style="font-size:.75rem;color:var(--rx-muted)"></span>
+          </div>
+        </div>
+
+        <!-- Avatar upload progress -->
+        <div id="avatarUploadStatus" style="display:none;font-size:.8125rem;color:var(--rx-muted)">
+          <div class="spinner spinner-sm" style="display:inline-block;margin-right:6px"></div>
+          Uploading photo…
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Stats strip ── -->
+    <div class="stats-strip" id="statsStrip">
+      <div class="stats-cell">
+        <div class="stats-cell-value" id="statScans">—</div>
+        <div class="stats-cell-label">Prescriptions Scanned</div>
+      </div>
+      <div class="stats-cell">
+        <div class="stats-cell-value" id="statBmi">—</div>
+        <div class="stats-cell-label">BMI Records</div>
+      </div>
+      <div class="stats-cell">
+        <div class="stats-cell-value" id="statChats">—</div>
+        <div class="stats-cell-label">AI Chat Sessions</div>
+      </div>
+    </div>
+
+    <!-- ── Tab navigation ── -->
+    <div>
+      <div class="profile-tabs" role="tablist">
+        <button class="profile-tab active" role="tab" aria-selected="true"
+                onclick="switchTab('personal',this)">👤 Personal Info</button>
+        <button class="profile-tab" role="tab" aria-selected="false"
+                id="tabProfessional" style="display:none"
+                onclick="switchTab('professional',this)">🏥 Professional</button>
+        <button class="profile-tab" role="tab" aria-selected="false"
+                onclick="switchTab('security',this)">🔒 Security</button>
+        <button class="profile-tab" role="tab" aria-selected="false"
+                onclick="switchTab('sessions',this)">💻 Sessions</button>
+        <button class="profile-tab" role="tab" aria-selected="false"
+                onclick="switchTab('settings',this)">⚙️ Settings</button>
+      </div>
+
+      <!-- ══════════════════════════════
+           TAB: Personal Info
+      ══════════════════════════════ -->
+      <div class="tab-panel active" id="panel-personal">
+        <div class="card">
+          <div class="section-title">👤 Personal Information</div>
+          <form id="profileForm" novalidate>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="fieldName">Full name</label>
+                <input class="form-control" type="text" id="fieldName" name="name"
+                       placeholder="Your full name" autocomplete="name"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="fieldPhone">Phone number</label>
+                <input class="form-control" type="tel" id="fieldPhone" name="phone"
+                       placeholder="+2348012345678" autocomplete="tel"/>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="fieldEmail">Email address</label>
+              <input class="form-control" type="email" id="fieldEmail"
+                     placeholder="—" disabled
+                     style="background:var(--rx-gray-100);color:var(--rx-muted);cursor:not-allowed"/>
+              <div class="form-hint">Email address cannot be changed. Contact support if needed.</div>
+            </div>
+
+            <div id="profileUpdateError" class="alert alert-danger"
+                 style="display:none;margin-bottom:1rem">
+              <span>⛔</span><span id="profileUpdateErrorMsg"></span>
+            </div>
+
+            <div style="display:flex;gap:.75rem;align-items:center">
+              <button type="submit" class="btn btn-primary" id="saveProfileBtn">
+                Save Changes
+              </button>
+              <span id="profileSaveSuccess"
+                    style="display:none;font-size:.875rem;color:var(--rx-green);font-weight:500">
+                ✓ Saved successfully
+              </span>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════
+           TAB: Professional
+      ══════════════════════════════ -->
+      <div class="tab-panel" id="panel-professional">
+        <div class="card">
+
+          <!-- Verification status bar -->
+          <div id="proStatusBar" class="pro-status-bar unverified">
+            <div class="pro-status-icon" id="proStatusIcon">⏳</div>
+            <div class="pro-status-body">
+              <h4 id="proStatusTitle">Licence Verification Pending</h4>
+              <p id="proStatusDesc">
+                Our admin team will verify your licence within 24 hours.
+                Full clinical access will be enabled once approved.
+              </p>
+            </div>
+          </div>
+
+          <div class="section-title">🏥 Professional Credentials</div>
+
+          <div class="form-row" style="margin-bottom:var(--space-4)">
+            <div>
+              <div class="form-label" style="margin-bottom:.35rem">Profession</div>
+              <div id="proFieldProfession"
+                   style="font-size:.9375rem;font-weight:600;padding:11px 14px;
+                          background:var(--rx-gray-100);border-radius:var(--radius-md);
+                          border:1px solid var(--rx-border)">—</div>
+            </div>
+            <div>
+              <div class="form-label" style="margin-bottom:.35rem">Licence Number</div>
+              <div id="proFieldLicence"
+                   style="font-size:.9375rem;font-weight:600;padding:11px 14px;
+                          background:var(--rx-gray-100);border-radius:var(--radius-md);
+                          border:1px solid var(--rx-border);font-family:var(--font-mono)">—</div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:var(--space-4)">
+            <div class="form-label" style="margin-bottom:.35rem">Hospital / Pharmacy</div>
+            <div id="proFieldInstitution"
+                 style="font-size:.9375rem;padding:11px 14px;
+                        background:var(--rx-gray-100);border-radius:var(--radius-md);
+                        border:1px solid var(--rx-border)">—</div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <div class="form-label" style="margin-bottom:.35rem">Specialty</div>
+              <div id="proFieldSpecialty"
+                   style="font-size:.9375rem;padding:11px 14px;
+                          background:var(--rx-gray-100);border-radius:var(--radius-md);
+                          border:1px solid var(--rx-border);color:var(--rx-muted)">—</div>
+            </div>
+            <div>
+              <div class="form-label" style="margin-bottom:.35rem">Verified On</div>
+              <div id="proFieldVerifiedAt"
+                   style="font-size:.9375rem;padding:11px 14px;
+                          background:var(--rx-gray-100);border-radius:var(--radius-md);
+                          border:1px solid var(--rx-border);color:var(--rx-muted)">Pending</div>
+            </div>
+          </div>
+
+          <div style="margin-top:var(--space-5);padding-top:var(--space-4);
+                      border-top:1px solid var(--rx-border)">
+            <p style="font-size:.8125rem;color:var(--rx-muted);line-height:1.6">
+              Professional credentials are verified by the RxGuard admin team against
+              <strong>MDCN</strong> (for physicians) and <strong>PCN</strong> (for pharmacists)
+              registries. To update your licence details, contact
+              <a href="mailto:support@rxguard.ng">support@rxguard.ng</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════
+           TAB: Security
+      ══════════════════════════════ -->
+      <div class="tab-panel" id="panel-security">
+        <div class="card">
+          <div class="section-title">🔑 Change Password</div>
+
+          <form id="changePasswordForm" novalidate>
+            <div class="form-group">
+              <label class="form-label" for="currentPassword">Current password</label>
+              <div class="input-with-action">
+                <input class="form-control" type="password" id="currentPassword"
+                       name="current_password" placeholder="Enter current password"
+                       autocomplete="current-password"/>
+                <button type="button" class="input-action-btn"
+                        id="toggle_currentPassword" aria-label="Show password">👁</button>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="newPassword">New password</label>
+                <div class="input-with-action">
+                  <input class="form-control" type="password" id="newPassword"
+                         name="password" placeholder="Min. 8 characters"
+                         autocomplete="new-password"/>
+                  <button type="button" class="input-action-btn"
+                          id="toggle_newPassword" aria-label="Show password">👁</button>
+                </div>
+                <div class="pwd-strength-wrap" id="newPwdStrength" style="display:none">
+                  <div class="pwd-strength-bar">
+                    <div class="pwd-strength-fill" id="newPwdBar"></div>
+                  </div>
+                  <span class="pwd-strength-label" id="newPwdLabel"></span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="confirmNewPassword">Confirm new password</label>
+                <div class="input-with-action">
+                  <input class="form-control" type="password" id="confirmNewPassword"
+                         name="password_confirmation" placeholder="Repeat new password"
+                         autocomplete="new-password"/>
+                  <button type="button" class="input-action-btn"
+                          id="toggle_confirmNewPassword" aria-label="Show password">👁</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="alert alert-info" style="margin-bottom:var(--space-4)">
+              <span>ℹ️</span>
+              <span style="font-size:.8125rem">
+                Choose a strong password with uppercase letters, numbers, and symbols.
+                Changing your password will sign you out of <strong>all devices, including this one</strong> —
+                you'll need to log in again afterwards.
+              </span>
+            </div>
+
+            <div id="changePwdError" class="alert alert-danger"
+                 style="display:none;margin-bottom:1rem">
+              <span>⛔</span><span></span>
+            </div>
+
+            <div style="display:flex;gap:.75rem;align-items:center">
+              <button type="submit" class="btn btn-primary" id="changePwdBtn">
+                Update Password
+              </button>
+              <span id="changePwdSuccess"
+                    style="display:none;font-size:.875rem;color:var(--rx-green);font-weight:500">
+                ✓ Password updated
+              </span>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════
+           TAB: Sessions
+      ══════════════════════════════ -->
+      <div class="tab-panel" id="panel-sessions">
+        <div class="card">
+          <div class="section-title">💻 Active Sessions</div>
+          <p style="font-size:.875rem;color:var(--rx-muted);margin-bottom:var(--space-5)">
+            These are the devices and browsers currently signed in to your account.
+          </p>
+          <div id="sessionsList">
+            <div class="session-item">
+              <span class="session-icon">
+                <div class="spinner spinner-sm"></div>
+              </span>
+              <div class="session-body">
+                <div class="session-label">Loading sessions…</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:var(--space-5);padding-top:var(--space-4);
+                      border-top:1px solid var(--rx-border)">
+            <button class="btn btn-outline" style="color:var(--rx-red);border-color:var(--rx-red)"
+                    onclick="AuthForms.SessionManager.revokeAll()">
+              Sign Out All Other Devices
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════
+           TAB: Settings
+      ══════════════════════════════ -->
+      <div class="tab-panel" id="panel-settings">
+
+        <!-- Preferences -->
+        <div class="card" style="margin-bottom:var(--space-6)">
+          <div class="section-title">⚙️ Preferences</div>
+
+          <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+
+            <!-- Dark mode toggle -->
+            <div style="display:flex;align-items:center;justify-content:space-between;
+                        padding:var(--space-4);background:var(--rx-surface-alt);
+                        border-radius:var(--radius-md);border:1px solid var(--rx-border)">
+              <div>
+                <div style="font-size:.9375rem;font-weight:500">Dark Mode</div>
+                <div style="font-size:.8125rem;color:var(--rx-muted)">Switch between light and dark theme</div>
+              </div>
+              <button id="darkModeToggle" onclick="App.Theme.toggle();updateThemeToggle()"
+                      class="btn btn-outline btn-sm">🌙 Toggle</button>
+            </div>
+
+            <!-- Notification preference -->
+            <div style="display:flex;align-items:center;justify-content:space-between;
+                        padding:var(--space-4);background:var(--rx-surface-alt);
+                        border-radius:var(--radius-md);border:1px solid var(--rx-border)">
+              <div>
+                <div style="font-size:.9375rem;font-weight:500">Email Notifications</div>
+                <div style="font-size:.8125rem;color:var(--rx-muted)">Receive interaction alerts and scan reports via email</div>
+              </div>
+              <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+                <input type="checkbox" id="prefEmail" checked
+                       onchange="savePreference('email_notifications', this.checked)"
+                       style="width:16px;height:16px"/>
+                <span style="font-size:.875rem;font-weight:500" id="prefEmailLabel">On</span>
+              </label>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- NDPR / Data -->
+        <div class="card" style="margin-bottom:var(--space-6)">
+          <div class="section-title">🔐 Data & Privacy (NDPR)</div>
+          <p style="font-size:.875rem;color:var(--rx-muted);line-height:1.7;margin-bottom:var(--space-4)">
+            RxGuard complies with the Nigerian Data Protection Regulation (NDPR).
+            Your health data is encrypted at rest and in transit. We never sell your data.
+          </p>
+          <div style="display:flex;flex-wrap:wrap;gap:.75rem">
+            <a href="#" class="btn btn-outline btn-sm">Download My Data</a>
+            <a href="#" class="btn btn-outline btn-sm">View Privacy Policy</a>
+            <a href="#" class="btn btn-outline btn-sm">Consent Settings</a>
+          </div>
+        </div>
+
+        <!-- Danger zone -->
+        <div class="danger-zone">
+          <h4>⚠️ Danger Zone</h4>
+          <p>
+            Deleting your account is <strong>permanent and cannot be undone</strong>.
+            It removes your login and profile data immediately. Health records tied
+            to your account (prescriptions, scans, BMI history) are retained in
+            anonymised form only where required for regulatory/audit purposes.
+          </p>
+          <button class="btn btn-sm"
+                  style="background:var(--rx-red);color:#fff;border-color:var(--rx-red)"
+                  onclick="confirmDeactivate()">
+            Delete My Account
+          </button>
+        </div>
+
+      </div>
+    </div><!-- end tab panels -->
+
+  </main>
+</div>
+
+<!-- Deactivate confirm modal -->
+<div class="modal-backdrop" id="deactivateModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Delete Account</h2>
+      <button class="modal-close" data-modal-close="deactivateModal">×</button>
+    </div>
+    <p style="font-size:.9375rem;color:var(--rx-muted);line-height:1.7;margin-bottom:var(--space-5)">
+      This is permanent and cannot be undone. Enter your password and type
+      <strong>DELETE</strong> below to confirm.
+    </p>
+    <div class="form-group">
+      <label class="form-label" for="deactivatePasswordInput">Password</label>
+      <input class="form-control" type="password" id="deactivatePasswordInput"
+             placeholder="Enter your password" autocomplete="current-password"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="deactivateReasonInput">Reason (optional)</label>
+      <input class="form-control" type="text" id="deactivateReasonInput"
+             placeholder="Help us improve — why are you leaving?"/>
+    </div>
+    <div class="form-group">
+      <input class="form-control" type="text" id="deactivateConfirmInput"
+             placeholder="Type DELETE to confirm"/>
+    </div>
+    <div id="deactivateError" class="alert alert-danger" style="display:none;margin-bottom:1rem">
+      <span>⛔</span><span id="deactivateErrorMsg"></span>
+    </div>
+    <div style="display:flex;gap:.75rem;justify-content:flex-end">
+      <button class="btn btn-outline" data-modal-close="deactivateModal">Cancel</button>
+      <button class="btn btn-danger" id="deactivateConfirmBtn"
+              onclick="submitDeactivate()">Delete Account</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+'use strict';
+
+/* ─── Guard ─── */
+if (!RxGuard.requireAuth()) { /* redirected */ }
+
+/* ─── Tab switching ─── */
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.profile-tab').forEach(b => {
+    b.classList.remove('active');
+    b.setAttribute('aria-selected','false');
+  });
+  document.getElementById('panel-' + id).classList.add('active');
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected','true');
+}
+
+/* ─── Load profile ─── */
+async function loadProfile() {
+  let profile;
+  try {
+    const res = await RxGuard.User.profile();
+    profile   = res.data;
+    // Update cached user
+    RxGuard.TokenStore.setUser(profile);
+  } catch {
+    // Fallback to cached data
+    profile = RxGuard.Auth.currentUser();
+  }
+  if (!profile) return;
+  renderProfile(profile);
+  loadStats();
+}
+
+function renderProfile(p) {
+  /* Avatar */
+  const initial = (p.name || '?').charAt(0).toUpperCase();
+  document.getElementById('avatarInitial').textContent = initial;
+  if (p.avatar_url && !p.avatar_url.includes('ui-avatars')) {
+    const img = document.createElement('img');
+    img.src = p.avatar_url;
+    img.alt = p.name;
+    const disp = document.getElementById('avatarDisplay');
+    disp.innerHTML = '';
+    disp.appendChild(img);
+  }
+
+  /* Identity */
+  document.getElementById('profileName').textContent  = p.name || '—';
+  document.getElementById('profileEmail').textContent = p.email || '—';
+  document.getElementById('profileRoleBadge').innerHTML = App.Badge.role(p.role);
+  document.getElementById('profileMemberSince').textContent =
+    'Member since ' + App.DateFmt.display(p.created_at);
+
+  /* Verified pill */
+  const isPro = ['pharmacist','physician'].includes(p.role);
+  const isVerified = p.professional?.license_verified;
+  if (isPro) {
+    document.getElementById('profileVerifiedPill').innerHTML =
+      isVerified
+        ? '<span class="verified-pill yes">✓ Licence Verified</span>'
+        : '<span class="verified-pill no">⏳ Pending Verification</span>';
+    document.getElementById('tabProfessional').style.display = 'block';
+    renderProfessional(p.professional, isVerified);
+  }
+
+  /* Form fields */
+  document.getElementById('fieldName').value  = p.name  || '';
+  document.getElementById('fieldEmail').value = p.email || '';
+  document.getElementById('fieldPhone').value = p.phone || '';
+
+  /* Navbar initial */
+  const navInit = document.getElementById('navAvatarInitial');
+  if (navInit) navInit.textContent = initial;
+  const navName = document.getElementById('navUserName');
+  if (navName) navName.textContent = (p.name || '').split(' ')[0];
+}
+
+function renderProfessional(pro, verified) {
+  if (!pro) return;
+  const bar   = document.getElementById('proStatusBar');
+  const icon  = document.getElementById('proStatusIcon');
+  const title = document.getElementById('proStatusTitle');
+  const desc  = document.getElementById('proStatusDesc');
+
+  if (verified) {
+    bar.className   = 'pro-status-bar verified';
+    icon.textContent= '✅';
+    title.textContent= 'Licence Verified';
+    desc.textContent = 'Your professional licence has been verified. Full clinical features are active.';
+  }
+
+  document.getElementById('proFieldProfession').textContent =
+    pro.profession ? pro.profession.charAt(0).toUpperCase() + pro.profession.slice(1) : '—';
+  document.getElementById('proFieldLicence').textContent    = pro.license_number || '—';
+  document.getElementById('proFieldInstitution').textContent= pro.institution    || '—';
+  document.getElementById('proFieldSpecialty').textContent  = pro.specialty      || 'Not specified';
+  document.getElementById('proFieldVerifiedAt').textContent =
+    pro.verified_at ? App.DateFmt.display(pro.verified_at) : 'Pending';
+}
+
+/* ─── Activity stats ─── */
+async function loadStats() {
+  try {
+    const [rxRes, bmiRes] = await Promise.allSettled([
+      RxGuard.Prescriptions.list({ per_page: 1 }),
+      RxGuard.Bmi.history(),
+    ]);
+
+    if (rxRes.status  === 'fulfilled')
+      document.getElementById('statScans').textContent =
+        rxRes.value.data?.total || 0;
+
+    if (bmiRes.status === 'fulfilled')
+      document.getElementById('statBmi').textContent  =
+        bmiRes.value.data?.total || 0;
+
+    const chatRes = await RxGuard.Chatbot.history();
+    document.getElementById('statChats').textContent =
+      chatRes.data?.total || 0;
+  } catch {}
+}
+
+/* ─── Profile form ─── */
+document.getElementById('profileForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  App.FormHelper.clearAll('profileForm');
+  document.getElementById('profileUpdateError').style.display    = 'none';
+  document.getElementById('profileSaveSuccess').style.display    = 'none';
+
+  const name  = document.getElementById('fieldName').value.trim();
+  const phone = document.getElementById('fieldPhone').value.trim();
+
+  let valid = true;
+  if (!name || name.length < 2) {
+    App.FormHelper.setError('fieldName','Full name must be at least 2 characters');
+    valid = false;
+  }
+  if (phone && !/^\+?[0-9]{10,15}$/.test(phone)) {
+    App.FormHelper.setError('fieldPhone','Enter a valid phone number');
+    valid = false;
+  }
+  if (!valid) return;
+
+  App.FormHelper.setLoading('saveProfileBtn', true);
+  try {
+    const res = await RxGuard.User.updateProfile({ name, phone: phone || null });
+    RxGuard.TokenStore.setUser(res.data);
+    renderProfile(res.data);
+    document.getElementById('profileSaveSuccess').style.display = 'inline';
+    setTimeout(() => {
+      document.getElementById('profileSaveSuccess').style.display = 'none';
+    }, 3000);
+    RxGuard.Toast.success('Profile updated', 'Your information has been saved.');
+  } catch(err) {
+    if (err.validationErrors) {
+      App.FormHelper.applyApiErrors(err.allFieldErrors());
+    } else {
+      const errEl = document.getElementById('profileUpdateError');
+      errEl.style.display = 'flex';
+      document.getElementById('profileUpdateErrorMsg').textContent = err.message;
+    }
+  } finally {
+    App.FormHelper.setLoading('saveProfileBtn', false, 'Save Changes');
+  }
+});
+
+/* ─── Avatar upload ─── */
+document.getElementById('avatarInput').addEventListener('change', async function() {
+  const file = this.files[0];
+  if (!file) return;
+
+  const maxBytes = 2 * 1024 * 1024;
+  if (file.size > maxBytes) {
+    RxGuard.Toast.error('File too large', 'Avatar must be under 2 MB.');
+    this.value = '';
+    return;
+  }
+
+  const status = document.getElementById('avatarUploadStatus');
+  status.style.display = 'block';
+
+  // Preview immediately
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const disp = document.getElementById('avatarDisplay');
+    disp.innerHTML = `<img src="${ev.target.result}" alt="Profile photo"/>`;
+  };
+  reader.readAsDataURL(file);
+
+  try {
+    const res = await RxGuard.User.uploadAvatar(file);
+    const cached = RxGuard.Auth.currentUser();
+    if (cached) { cached.avatar_url = res.avatar_url; RxGuard.TokenStore.setUser(cached); }
+    RxGuard.Toast.success('Photo updated', 'Your profile photo has been changed.');
+  } catch(err) {
+    RxGuard.Toast.error('Upload failed', err.message || 'Could not upload photo.');
+    // Revert preview to initials
+    const name = RxGuard.Auth.currentUser()?.name || '?';
+    document.getElementById('avatarDisplay').innerHTML =
+      `<span id="avatarInitial">${name.charAt(0).toUpperCase()}</span>`;
+  } finally {
+    status.style.display = 'none';
+    this.value = '';
+  }
+});
+
+/* ─── Preferences ─── */
+function savePreference(key, value) {
+  localStorage.setItem('rxguard_pref_' + key, JSON.stringify(value));
+  const label = document.getElementById('prefEmailLabel');
+  if (label) label.textContent = value ? 'On' : 'Off';
+  RxGuard.Toast.info('Preference saved', `${key.replace('_',' ')} turned ${value ? 'on' : 'off'}.`);
+}
+
+function updateThemeToggle() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const btn = document.getElementById('darkModeToggle');
+  if (btn) btn.textContent = isDark ? '☀️ Toggle' : '🌙 Toggle';
+}
+
+/* ─── Delete account ─── */
+function confirmDeactivate() {
+  document.getElementById('deactivateError').style.display = 'none';
+  document.getElementById('deactivatePasswordInput').value = '';
+  document.getElementById('deactivateReasonInput').value   = '';
+  document.getElementById('deactivateConfirmInput').value  = '';
+  App.Modal.open('deactivateModal');
+}
+
+async function submitDeactivate() {
+  const errEl     = document.getElementById('deactivateError');
+  const errMsgEl  = document.getElementById('deactivateErrorMsg');
+  errEl.style.display = 'none';
+
+  const password = document.getElementById('deactivatePasswordInput').value;
+  const reason   = document.getElementById('deactivateReasonInput').value.trim();
+  const confirmText = document.getElementById('deactivateConfirmInput').value.trim();
+
+  if (!password) {
+    errMsgEl.textContent = 'Enter your password to confirm.';
+    errEl.style.display = 'flex';
+    return;
+  }
+  if (confirmText !== 'DELETE') {
+    errMsgEl.textContent = 'Please type DELETE exactly.';
+    errEl.style.display = 'flex';
+    return;
+  }
+
+  const btn = document.getElementById('deactivateConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting…';
+  try {
+    await RxGuard.User.deleteAccount(password, reason || null);
+    RxGuard.Toast.warning('Account deleted', 'Signing you out…');
+    RxGuard.TokenStore.clearTokens();
+    setTimeout(() => { window.location.href = 'login.html'; }, 1200);
+  } catch (err) {
+    errMsgEl.textContent = err.message || 'Could not delete account. Please try again.';
+    errEl.style.display = 'flex';
+    btn.disabled    = false;
+    btn.textContent = 'Delete Account';
+  }
+}
+
+/* ─── Boot ─── */
+document.addEventListener('DOMContentLoaded', () => {
+  App.injectSidebar('profile');
+
+  // Load stored preference
+  const emailPref = localStorage.getItem('rxguard_pref_email_notifications');
+  if (emailPref !== null) {
+    const val = JSON.parse(emailPref);
+    const chk = document.getElementById('prefEmail');
+    const lbl = document.getElementById('prefEmailLabel');
+    if (chk) chk.checked     = val;
+    if (lbl) lbl.textContent = val ? 'On' : 'Off';
+  }
+
+  updateThemeToggle();
+  loadProfile();
+});
+</script>
+</body>
+</html>

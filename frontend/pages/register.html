@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create Account — RxGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/components.css"/>
+  <style>
+    body { display:flex;flex-direction:column;min-height:100vh;background:var(--rx-bg); }
+
+    .auth-wrapper { flex:1;display:flex;align-items:stretch; }
+
+    /* Left panel */
+    .auth-panel-left {
+      flex:1;display:none;
+      background:linear-gradient(155deg,#083D85 0%,#0A4FA6 50%,#1D9E75 100%);
+      padding:3rem;flex-direction:column;color:#fff;position:relative;overflow:hidden;
+    }
+    .auth-panel-left::before {
+      content:'';position:absolute;inset:0;
+      background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .brand { display:flex;align-items:center;gap:12px;margin-bottom:3rem;position:relative; }
+    .brand-logo { width:44px;height:44px;background:rgba(255,255,255,.2);border-radius:12px;
+                  display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800; }
+    .panel-body { position:relative; }
+    .panel-body h2 { font-family:var(--font-display);font-size:1.875rem;line-height:1.25;margin-bottom:1rem; }
+    .panel-body p  { font-size:.9375rem;opacity:.85;line-height:1.7;margin-bottom:2rem; }
+    .role-cards { display:flex;flex-direction:column;gap:.875rem; }
+    .role-card {
+      background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+      border-radius:12px;padding:1rem;display:flex;align-items:flex-start;gap:.875rem;
+    }
+    .role-card-icon { font-size:1.5rem;flex-shrink:0; }
+    .role-card-title { font-weight:600;font-size:.9375rem;margin-bottom:2px; }
+    .role-card-desc  { font-size:.8125rem;opacity:.8; }
+    .panel-footer { margin-top:auto;padding-top:2rem;font-size:.75rem;opacity:.6;position:relative; }
+
+    /* Right panel */
+    .auth-panel-right {
+      width:100%;max-width:520px;margin:0 auto;
+      display:flex;flex-direction:column;justify-content:center;
+      padding:2rem;
+    }
+    .auth-card {
+      background:var(--rx-surface);border:1px solid var(--rx-border);
+      border-radius:var(--radius-xl);padding:2.25rem;box-shadow:var(--shadow-lg);
+    }
+    .auth-logo-mobile {
+      display:flex;align-items:center;gap:10px;margin-bottom:1.75rem;
+      font-size:1.25rem;font-weight:700;color:var(--rx-blue);
+    }
+    .auth-logo-icon {
+      width:38px;height:38px;background:var(--rx-blue);border-radius:10px;
+      display:flex;align-items:center;justify-content:center;color:#fff;font-size:.9rem;font-weight:800;
+    }
+    .auth-heading  { font-size:1.4rem;font-weight:700;margin-bottom:.35rem; }
+    .auth-subtext  { font-size:.875rem;color:var(--rx-muted);margin-bottom:1.75rem; }
+
+    /* Tab switcher */
+    .tab-bar {
+      display:flex;background:var(--rx-gray-100);border-radius:10px;
+      padding:3px;margin-bottom:1.75rem;
+    }
+    .tab-btn {
+      flex:1;padding:9px 8px;border-radius:8px;border:none;background:transparent;
+      font-family:var(--font-sans);font-size:.875rem;font-weight:500;
+      color:var(--rx-muted);cursor:pointer;transition:all var(--transition);
+    }
+    .tab-btn.active {
+      background:var(--rx-surface);color:var(--rx-blue);
+      box-shadow:0 1px 4px rgba(0,0,0,.1);
+    }
+
+    /* Role selector */
+    .role-options { display:flex;gap:.75rem;margin-bottom:1.5rem; }
+    .role-opt {
+      flex:1;border:1.5px solid var(--rx-border);border-radius:var(--radius-lg);
+      padding:.875rem .5rem;text-align:center;cursor:pointer;
+      transition:all var(--transition);background:var(--rx-surface);
+    }
+    .role-opt:hover   { border-color:var(--rx-blue);background:var(--rx-blue-xlight); }
+    .role-opt.selected{ border-color:var(--rx-blue);background:var(--rx-blue-light); }
+    .role-opt .ri   { font-size:1.375rem;margin-bottom:.35rem; }
+    .role-opt .rn   { font-size:.8125rem;font-weight:600;color:var(--rx-muted);display:block; }
+    .role-opt.selected .rn { color:var(--rx-blue); }
+
+    /* Password strength */
+    .pwd-strength { margin-top:.5rem; }
+    .pwd-strength-bar {
+      height:4px;border-radius:4px;background:var(--rx-gray-200);overflow:hidden;margin-bottom:4px;
+    }
+    .pwd-strength-fill { height:100%;border-radius:4px;transition:width .3s,background .3s;width:0%; }
+    .pwd-strength-label { font-size:.75rem;color:var(--rx-muted); }
+
+    .input-with-action { position:relative; }
+    .input-with-action .form-control { padding-right:44px; }
+    .input-action-btn {
+      position:absolute;right:12px;top:50%;transform:translateY(-50%);
+      background:none;border:none;cursor:pointer;color:var(--rx-muted);font-size:.875rem;padding:4px;
+    }
+
+    /* Consent checkbox */
+    .consent-row {
+      display:flex;align-items:flex-start;gap:.625rem;
+      font-size:.8125rem;color:var(--rx-muted);margin:1rem 0 1.25rem;
+    }
+    .consent-row input { margin-top:2px;flex-shrink:0; }
+    .consent-row a { color:var(--rx-blue);text-decoration:none; }
+    .consent-row a:hover { text-decoration:underline; }
+
+    .auth-footer { text-align:center;font-size:.8125rem;color:var(--rx-muted);margin-top:1.25rem; }
+    .auth-footer a { color:var(--rx-blue);font-weight:500;text-decoration:none; }
+    .auth-footer a:hover { text-decoration:underline; }
+
+    .section-divider {
+      font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
+      color:var(--rx-muted);margin:.5rem 0 1rem;
+      display:flex;align-items:center;gap:.75rem;
+    }
+    .section-divider::before,.section-divider::after { content:'';flex:1;height:1px;background:var(--rx-border); }
+
+    @media(min-width:960px){
+      .auth-panel-left { display:flex;flex-direction:column; }
+      .auth-panel-right{ padding:2.5rem;border-left:1px solid var(--rx-border); }
+      .auth-logo-mobile{ display:none; }
+    }
+    @media(max-width:480px){
+      .auth-panel-right{ padding:1.25rem 1rem; }
+      .auth-card { padding:1.5rem 1.25rem; }
+      .role-options { flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="auth-wrapper">
+
+  <!-- Left panel -->
+  <div class="auth-panel-left">
+    <div class="brand">
+      <div class="brand-logo">Rx</div>
+      <span style="font-size:1.375rem;font-weight:700">RxGuard</span>
+    </div>
+    <div class="panel-body">
+      <h2>Join Nigeria's Medication Safety Network</h2>
+      <p>Choose your role and get access to the tools built for your healthcare needs.</p>
+      <div class="role-cards">
+        <div class="role-card">
+          <div class="role-card-icon">👤</div>
+          <div>
+            <div class="role-card-title">Consumer</div>
+            <div class="role-card-desc">Scan prescriptions, check drug interactions, and access the AI health assistant.</div>
+          </div>
+        </div>
+        <div class="role-card">
+          <div class="role-card-icon">💊</div>
+          <div>
+            <div class="role-card-title">Pharmacist (PCN Licensed)</div>
+            <div class="role-card-desc">Review and approve prescriptions, access patient medication histories with consent.</div>
+          </div>
+        </div>
+        <div class="role-card">
+          <div class="role-card-icon">🩺</div>
+          <div>
+            <div class="role-card-title">Physician (MDCN Licensed)</div>
+            <div class="role-card-desc">Upload prescriptions, monitor patient records, and receive clinical recommendations.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel-footer">© 2025 RxGuard Nigeria · NDPR Compliant · NAFDAC Integrated</div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="auth-panel-right">
+    <div class="auth-card">
+
+      <div class="auth-logo-mobile">
+        <div class="auth-logo-icon">Rx</div>
+        RxGuard
+      </div>
+
+      <h1 class="auth-heading">Create your account</h1>
+      <p class="auth-subtext">Free for consumers · Professional verification required for clinical roles</p>
+
+      <!-- Tab bar -->
+      <div class="tab-bar" role="tablist">
+        <button class="tab-btn active" id="tabConsumer"
+                role="tab" aria-selected="true"  aria-controls="panelConsumer"
+                onclick="switchTab('consumer')">👤 Consumer</button>
+        <button class="tab-btn"        id="tabProfessional"
+                role="tab" aria-selected="false" aria-controls="panelProfessional"
+                onclick="switchTab('professional')">🏥 Professional</button>
+      </div>
+
+      <!-- ─── CONSUMER FORM ─── -->
+      <div id="panelConsumer" role="tabpanel" aria-labelledby="tabConsumer">
+        <form id="consumerForm" novalidate>
+          <input type="hidden" name="role" value="consumer"/>
+
+          <div class="form-group">
+            <label class="form-label" for="c_name">Full name</label>
+            <input class="form-control" type="text" id="c_name" name="name"
+                   placeholder="Chukwuemeka Obi" autocomplete="name" required/>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="c_email">Email address</label>
+              <input class="form-control" type="email" id="c_email" name="email"
+                     placeholder="you@example.com" autocomplete="email" required/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="c_phone">Phone number</label>
+              <input class="form-control" type="tel" id="c_phone" name="phone"
+                     placeholder="+2348012345678" autocomplete="tel"/>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="c_password">Password</label>
+            <div class="input-with-action">
+              <input class="form-control" type="password" id="c_password" name="password"
+                     placeholder="Min. 8 characters" autocomplete="new-password" required
+                     oninput="checkPasswordStrength(this.value,'c')"/>
+              <button type="button" class="input-action-btn" onclick="togglePwd('c_password',this)">👁</button>
+            </div>
+            <div class="pwd-strength" id="c_pwdStrength" style="display:none">
+              <div class="pwd-strength-bar">
+                <div class="pwd-strength-fill" id="c_pwdBar"></div>
+              </div>
+              <span class="pwd-strength-label" id="c_pwdLabel"></span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="c_password_confirmation">Confirm password</label>
+            <div class="input-with-action">
+              <input class="form-control" type="password" id="c_password_confirmation" name="password_confirmation"
+                     placeholder="Repeat password" autocomplete="new-password" required/>
+              <button type="button" class="input-action-btn"
+                      onclick="togglePwd('c_password_confirmation',this)">👁</button>
+            </div>
+          </div>
+
+          <div class="consent-row">
+            <input type="checkbox" id="c_consent" name="consent" required/>
+            <label for="c_consent">
+              I agree to the <a href="#" target="_blank">Terms of Service</a> and
+              <a href="#" target="_blank">Privacy Policy (NDPR)</a>. I consent to RxGuard
+              processing my health-related data as described.
+            </label>
+          </div>
+
+          <div id="consumerError" class="alert alert-danger" style="display:none;margin-bottom:1rem">
+            <span>⛔</span><span id="consumerErrorMsg"></span>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg btn-block" id="consumerBtn">
+            Create Consumer Account
+          </button>
+        </form>
+      </div>
+
+      <!-- ─── PROFESSIONAL FORM ─── -->
+      <div id="panelProfessional" role="tabpanel" aria-labelledby="tabProfessional" style="display:none">
+        <form id="professionalForm" novalidate>
+
+          <!-- Role selector -->
+          <div class="form-group" style="margin-bottom:1.25rem">
+            <label class="form-label">I am a</label>
+            <div class="role-options">
+              <div class="role-opt selected" id="optPharmacist" onclick="selectProfRole('pharmacist')">
+                <div class="ri">💊</div>
+                <span class="rn">Pharmacist</span>
+              </div>
+              <div class="role-opt" id="optPhysician" onclick="selectProfRole('physician')">
+                <div class="ri">🩺</div>
+                <span class="rn">Physician</span>
+              </div>
+            </div>
+            <input type="hidden" id="p_role" name="role" value="pharmacist"/>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="p_name">Full name</label>
+            <input class="form-control" type="text" id="p_name" name="name"
+                   placeholder="Dr. Adaeze Okonkwo" autocomplete="name" required/>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="p_email">Email address</label>
+              <input class="form-control" type="email" id="p_email" name="email"
+                     placeholder="you@hospital.ng" autocomplete="email" required/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="p_phone">Phone number</label>
+              <input class="form-control" type="tel" id="p_phone" name="phone"
+                     placeholder="+2348023456789" autocomplete="tel"/>
+            </div>
+          </div>
+
+          <div class="section-divider">Professional credentials</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="p_license">
+                Licence number
+                <span id="licenceHint" style="color:var(--rx-muted);font-weight:400"> (PCN/…)</span>
+              </label>
+              <input class="form-control" type="text" id="p_license" name="license_number"
+                     placeholder="PCN/2022/000123" required/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="p_specialty">Specialty <span style="font-weight:400;color:var(--rx-muted)">(optional)</span></label>
+              <input class="form-control" type="text" id="p_specialty" name="specialty"
+                     placeholder="e.g. Clinical Pharmacy"/>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="p_institution">Hospital / Pharmacy name</label>
+            <input class="form-control" type="text" id="p_institution" name="institution"
+                   placeholder="Lagos Island General Hospital" required/>
+          </div>
+
+          <div class="section-divider">Account security</div>
+
+          <div class="form-group">
+            <label class="form-label" for="p_password">Password</label>
+            <div class="input-with-action">
+              <input class="form-control" type="password" id="p_password" name="password"
+                     placeholder="Min. 8 characters" autocomplete="new-password" required
+                     oninput="checkPasswordStrength(this.value,'p')"/>
+              <button type="button" class="input-action-btn" onclick="togglePwd('p_password',this)">👁</button>
+            </div>
+            <div class="pwd-strength" id="p_pwdStrength" style="display:none">
+              <div class="pwd-strength-bar">
+                <div class="pwd-strength-fill" id="p_pwdBar"></div>
+              </div>
+              <span class="pwd-strength-label" id="p_pwdLabel"></span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="p_password_confirmation">Confirm password</label>
+            <div class="input-with-action">
+              <input class="form-control" type="password" id="p_password_confirmation"
+                     name="password_confirmation" placeholder="Repeat password"
+                     autocomplete="new-password" required/>
+              <button type="button" class="input-action-btn"
+                      onclick="togglePwd('p_password_confirmation',this)">👁</button>
+            </div>
+          </div>
+
+          <div class="alert alert-info" style="margin-bottom:1rem">
+            <span>ℹ️</span>
+            <span style="font-size:.8125rem">Your licence will be verified by our admin team within 24 hours before your professional access is activated.</span>
+          </div>
+
+          <div class="consent-row">
+            <input type="checkbox" id="p_consent" name="consent" required/>
+            <label for="p_consent">
+              I agree to the <a href="#" target="_blank">Terms of Service</a>,
+              <a href="#" target="_blank">Privacy Policy (NDPR)</a>, and the
+              <a href="#" target="_blank">Professional Code of Conduct</a>.
+            </label>
+          </div>
+
+          <div id="professionalError" class="alert alert-danger" style="display:none;margin-bottom:1rem">
+            <span>⛔</span><span id="professionalErrorMsg"></span>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg btn-block" id="professionalBtn">
+            Create Professional Account
+          </button>
+        </form>
+      </div>
+
+      <div class="auth-footer">
+        Already have an account? <a href="login.html">Sign in</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/app.js"></script>
+<script>
+'use strict';
+
+// Redirect if already authenticated
+if (RxGuard.Auth.isAuthenticated()) window.location.href = 'dashboard.html';
+
+let activeTab = 'consumer';
+
+/* ── Tab switching ── */
+function switchTab(tab) {
+  activeTab = tab;
+  const isConsumer = tab === 'consumer';
+
+  document.getElementById('tabConsumer').classList.toggle('active', isConsumer);
+  document.getElementById('tabProfessional').classList.toggle('active', !isConsumer);
+  document.getElementById('tabConsumer').setAttribute('aria-selected', String(isConsumer));
+  document.getElementById('tabProfessional').setAttribute('aria-selected', String(!isConsumer));
+
+  document.getElementById('panelConsumer').style.display     = isConsumer ? 'block' : 'none';
+  document.getElementById('panelProfessional').style.display = isConsumer ? 'none'  : 'block';
+}
+
+/* ── Professional role selector ── */
+function selectProfRole(role) {
+  document.getElementById('p_role').value = role;
+  document.getElementById('optPharmacist').classList.toggle('selected', role === 'pharmacist');
+  document.getElementById('optPhysician').classList.toggle('selected', role === 'physician');
+
+  const hint  = document.getElementById('licenceHint');
+  const input = document.getElementById('p_license');
+  if (role === 'physician') {
+    hint.textContent  = ' (MDCN/…)';
+    input.placeholder = 'MDCN/2020/012345';
+  } else {
+    hint.textContent  = ' (PCN/…)';
+    input.placeholder = 'PCN/2022/000123';
+  }
+}
+
+/* ── Password visibility toggle ── */
+function togglePwd(fieldId, btn) {
+  const field  = document.getElementById(fieldId);
+  const isText = field.type === 'text';
+  field.type   = isText ? 'password' : 'text';
+  btn.textContent = isText ? '👁' : '🙈';
+}
+
+/* ── Password strength meter ── */
+function checkPasswordStrength(pwd, prefix) {
+  const strengthEl = document.getElementById(prefix + '_pwdStrength');
+  const barEl      = document.getElementById(prefix + '_pwdBar');
+  const labelEl    = document.getElementById(prefix + '_pwdLabel');
+  if (!pwd) { strengthEl.style.display = 'none'; return; }
+
+  strengthEl.style.display = 'block';
+
+  let score = 0;
+  if (pwd.length >= 8)  score++;
+  if (pwd.length >= 12) score++;
+  if (/[A-Z]/.test(pwd)) score++;
+  if (/[0-9]/.test(pwd)) score++;
+  if (/[^A-Za-z0-9]/.test(pwd)) score++;
+
+  const levels = [
+    { pct:'20%', color:'#E24B4A', label:'Very weak' },
+    { pct:'40%', color:'#E5A50A', label:'Weak'      },
+    { pct:'60%', color:'#E5A50A', label:'Fair'      },
+    { pct:'80%', color:'#1D9E75', label:'Strong'    },
+    { pct:'100%',color:'#0F6E56', label:'Very strong'},
+  ];
+  const lvl = levels[Math.min(score, 4)];
+  barEl.style.width      = lvl.pct;
+  barEl.style.background = lvl.color;
+  labelEl.textContent    = lvl.label;
+}
+
+/* ── Consumer form validation & submit ── */
+document.getElementById('consumerForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  App.FormHelper.clearAll('consumerForm');
+  hideFormError('consumer');
+
+  const data = {
+    name                 : document.getElementById('c_name').value.trim(),
+    email                : document.getElementById('c_email').value.trim(),
+    phone                : document.getElementById('c_phone').value.trim(),
+    password             : document.getElementById('c_password').value,
+    password_confirmation: document.getElementById('c_password_confirmation').value,
+    role                 : 'consumer',
+  };
+  const consent = document.getElementById('c_consent').checked;
+
+  let valid = true;
+  if (!data.name)          { App.FormHelper.setError('c_name', 'Full name is required'); valid = false; }
+  if (!data.email)         { App.FormHelper.setError('c_email', 'Email is required'); valid = false; }
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+    App.FormHelper.setError('c_email', 'Enter a valid email address'); valid = false;
+  }
+  if (!data.password)      { App.FormHelper.setError('c_password', 'Password is required'); valid = false; }
+  else if (data.password.length < 8) { App.FormHelper.setError('c_password', 'Password must be at least 8 characters'); valid = false; }
+  if (data.password !== data.password_confirmation) {
+    App.FormHelper.setError('c_password_confirmation', 'Passwords do not match'); valid = false;
+  }
+  if (!consent) { showFormError('consumer', 'You must accept the Terms of Service and Privacy Policy.'); valid = false; }
+  if (!valid) return;
+
+  App.FormHelper.setLoading('consumerBtn', true);
+  try {
+    const res = await RxGuard.Auth.register(data);
+    if (res.data?.requires_confirmation) {
+      RxGuard.Toast.success('Almost there!', 'Check your email to confirm your address before logging in.');
+      setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+    } else {
+      RxGuard.Toast.success('Account created!', 'Welcome to RxGuard. Redirecting…');
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+    }
+  } catch (err) {
+    if (err.validationErrors) App.FormHelper.applyApiErrors(err.allFieldErrors());
+    else showFormError('consumer', err.message || 'Registration failed. Please try again.');
+    App.FormHelper.setLoading('consumerBtn', false, 'Create Consumer Account');
+  }
+});
+
+/* ── Professional form validation & submit ── */
+document.getElementById('professionalForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  App.FormHelper.clearAll('professionalForm');
+  hideFormError('professional');
+
+  const data = {
+    name                 : document.getElementById('p_name').value.trim(),
+    email                : document.getElementById('p_email').value.trim(),
+    phone                : document.getElementById('p_phone').value.trim(),
+    password             : document.getElementById('p_password').value,
+    password_confirmation: document.getElementById('p_password_confirmation').value,
+    role                 : document.getElementById('p_role').value,
+    license_number       : document.getElementById('p_license').value.trim(),
+    institution          : document.getElementById('p_institution').value.trim(),
+    specialty            : document.getElementById('p_specialty').value.trim(),
+  };
+  const consent = document.getElementById('p_consent').checked;
+
+  let valid = true;
+  if (!data.name)           { App.FormHelper.setError('p_name', 'Full name is required'); valid = false; }
+  if (!data.email)          { App.FormHelper.setError('p_email', 'Email is required'); valid = false; }
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+    App.FormHelper.setError('p_email', 'Enter a valid email address'); valid = false;
+  }
+  if (!data.license_number) { App.FormHelper.setError('p_license', 'Licence number is required'); valid = false; }
+  if (!data.institution)    { App.FormHelper.setError('p_institution', 'Hospital or pharmacy name is required'); valid = false; }
+  if (!data.password)       { App.FormHelper.setError('p_password', 'Password is required'); valid = false; }
+  else if (data.password.length < 8) { App.FormHelper.setError('p_password', 'Password must be at least 8 characters'); valid = false; }
+  if (data.password !== data.password_confirmation) {
+    App.FormHelper.setError('p_password_confirmation', 'Passwords do not match'); valid = false;
+  }
+  if (!consent) { showFormError('professional', 'You must accept the Terms of Service and Professional Code of Conduct.'); valid = false; }
+  if (!valid) return;
+
+  App.FormHelper.setLoading('professionalBtn', true);
+  try {
+    const res = await RxGuard.Auth.register(data);
+    if (res.data?.requires_confirmation) {
+      RxGuard.Toast.success('Almost there!', 'Check your email to confirm your address. Licence verification begins after that, within 24 hours.');
+      setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+    } else {
+      RxGuard.Toast.success('Account created!', 'Verification of your licence will begin within 24 hours.');
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
+    }
+  } catch (err) {
+    if (err.validationErrors) App.FormHelper.applyApiErrors(err.allFieldErrors());
+    else showFormError('professional', err.message || 'Registration failed. Please try again.');
+    App.FormHelper.setLoading('professionalBtn', false, 'Create Professional Account');
+  }
+});
+
+/* ── Error helpers ── */
+function showFormError(prefix, msg) {
+  document.getElementById(prefix + 'Error').style.display   = 'flex';
+  document.getElementById(prefix + 'ErrorMsg').textContent  = msg;
+}
+function hideFormError(prefix) {
+  document.getElementById(prefix + 'Error').style.display = 'none';
+}
+</script>
+</body>
+</html>

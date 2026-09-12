@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BMI Calculator — RxGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/components.css"/>
+  <style>
+    body { display:flex; flex-direction:column; min-height:100vh; background:var(--rx-bg); }
+    .page-wrap { display:flex; flex:1; min-height:0; }
+
+    .bmi-main {
+      flex:1; overflow-y:auto; padding:var(--space-8);
+      display:flex; flex-direction:column; gap:var(--space-6);
+    }
+
+    /* ── Two-column layout ── */
+    .bmi-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:var(--space-6);
+      align-items:start;
+    }
+
+    /* ── Live preview ring ── */
+    .live-preview {
+      text-align:center;
+      padding:var(--space-5);
+      background:var(--rx-surface-alt);
+      border-radius:var(--radius-lg);
+      border:1px solid var(--rx-border);
+      margin-bottom:var(--space-5);
+      transition:opacity .25s;
+    }
+    .live-val {
+      font-size:3rem; font-weight:800; line-height:1;
+      color:var(--rx-blue); transition:color .3s;
+    }
+    .live-cat {
+      font-size:.875rem; color:var(--rx-muted); margin-top:.35rem;
+      font-weight:500; min-height:1.25rem;
+    }
+    .live-label {
+      font-size:.75rem; color:var(--rx-muted);
+      text-transform:uppercase; letter-spacing:.5px; margin-bottom:.5rem;
+    }
+
+    /* ── Gender selector ── */
+    .gender-select {
+      display:grid; grid-template-columns:1fr 1fr; gap:.75rem;
+    }
+    .gender-opt {
+      border:1.5px solid var(--rx-border); border-radius:var(--radius-md);
+      padding:.875rem; text-align:center; cursor:pointer;
+      transition:all var(--transition); background:var(--rx-surface);
+    }
+    .gender-opt:hover    { border-color:var(--rx-blue); background:var(--rx-blue-xlight); }
+    .gender-opt.selected { border-color:var(--rx-blue); background:var(--rx-blue-light); }
+    .gender-opt .gi      { font-size:1.5rem; display:block; margin-bottom:.35rem; }
+    .gender-opt .gl      { font-size:.875rem; font-weight:600; color:var(--rx-muted); }
+    .gender-opt.selected .gl { color:var(--rx-blue); }
+    #gender { display:none; }
+
+    /* ── Result panel ── */
+    #resultPanel { display:none; }
+
+    .result-hero {
+      display:flex; align-items:center; gap:var(--space-6);
+      flex-wrap:wrap;
+      padding:var(--space-5);
+      background:var(--rx-surface-alt);
+      border-radius:var(--radius-lg);
+      border:1px solid var(--rx-border);
+      margin-bottom:var(--space-5);
+    }
+    .result-number {
+      font-size:4rem; font-weight:800; line-height:1;
+      transition:color .3s;
+    }
+    .result-info { flex:1; }
+    .result-category { font-size:1.125rem; font-weight:700; margin-bottom:.35rem; }
+    .result-meta     { font-size:.8125rem; color:var(--rx-muted); }
+
+    /* ── BMI gauge bar ── */
+    .bmi-gauge-wrap { margin:var(--space-4) 0; }
+    .gauge-bar {
+      height:14px; border-radius:999px; position:relative;
+      background:linear-gradient(90deg,
+        #3B9ECE 0%, #3B9ECE 20%,
+        #1D9E75 20%, #1D9E75 44%,
+        #E5A50A 44%, #E5A50A 64%,
+        #E24B4A 64%, #E24B4A 82%,
+        #A32D2D 82%, #A32D2D 100%);
+    }
+    .gauge-pointer {
+      position:absolute; top:-5px;
+      width:24px; height:24px; border-radius:50%;
+      background:#fff; border:3px solid #1A2332;
+      transform:translateX(-50%);
+      box-shadow:0 2px 8px rgba(0,0,0,.2);
+      transition:left .6s cubic-bezier(.34,1.56,.64,1);
+    }
+    .gauge-labels {
+      display:flex; justify-content:space-between;
+      margin-top:var(--space-2);
+      font-size:.6875rem; color:var(--rx-muted); font-weight:500;
+    }
+
+    /* ── Recommendation lists ── */
+    .rec-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:var(--space-4);
+      margin-top:var(--space-4);
+    }
+    .rec-card {
+      background:var(--rx-blue-xlight);
+      border:1px solid #C8DCEF;
+      border-radius:var(--radius-lg); padding:var(--space-4);
+    }
+    .rec-card.green { background:var(--rx-green-light); border-color:#A5D9C5; }
+    .rec-card h4 {
+      font-size:.875rem; font-weight:700;
+      color:var(--rx-blue); margin-bottom:var(--space-3);
+      display:flex; align-items:center; gap:.5rem;
+    }
+    .rec-card.green h4 { color:var(--rx-green-dark); }
+    .rec-card ul {
+      padding-left:1.1rem;
+      display:flex; flex-direction:column; gap:.5rem;
+    }
+    .rec-card li { font-size:.8125rem; line-height:1.55; color:var(--rx-text-secondary); }
+
+    /* ── Medical note ── */
+    .medical-note {
+      display:flex; align-items:flex-start; gap:.625rem;
+      padding:var(--space-4); background:var(--rx-amber-light);
+      border:1px solid #EDD098; border-radius:var(--radius-md);
+      font-size:.8125rem; color:var(--rx-amber-dark); line-height:1.6;
+      margin-top:var(--space-4);
+    }
+
+    /* ── Trend chart ── */
+    .trend-section { margin-bottom:var(--space-5); }
+    .trend-title   { font-size:.875rem; font-weight:600; margin-bottom:var(--space-3); }
+
+    /* ── History rows ── */
+    .bmi-history-row {
+      display:flex; align-items:center; gap:var(--space-4);
+      padding:var(--space-3) 0;
+      border-bottom:1px solid var(--rx-border);
+    }
+    .bmi-history-row:last-child { border-bottom:none; }
+    .bmi-history-date {
+      display:flex; flex-direction:column; align-items:center;
+      width:36px; flex-shrink:0;
+    }
+    .bhi-day { font-size:1.125rem; font-weight:800; line-height:1; }
+    .bhi-mon { font-size:.6875rem; color:var(--rx-muted); text-transform:uppercase; }
+    .bhi-yr  { font-size:.625rem;  color:var(--rx-muted); }
+    .bmi-history-main { flex:1; }
+    .bhi-value { font-size:1.25rem; font-weight:800; line-height:1; }
+    .bhi-cat   { font-size:.75rem; color:var(--rx-muted); margin-top:2px; }
+    .bmi-history-meta {
+      display:flex; flex-direction:column; gap:2px; align-items:flex-end;
+    }
+    .bhi-detail { font-size:.75rem; color:var(--rx-muted); }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size:1rem; font-weight:700;
+      display:flex; align-items:center; gap:.625rem;
+      margin-bottom:var(--space-5);
+      padding-bottom:var(--space-3);
+      border-bottom:1px solid var(--rx-border);
+    }
+
+    /* ── BMI reference table ── */
+    .bmi-ref-table { width:100%; border-collapse:collapse; font-size:.8125rem; }
+    .bmi-ref-table th {
+      text-align:left; padding:8px 12px;
+      background:var(--rx-gray-100);
+      font-size:.75rem; font-weight:600; color:var(--rx-muted);
+      border-bottom:1px solid var(--rx-border);
+    }
+    .bmi-ref-table td {
+      padding:9px 12px; border-bottom:1px solid var(--rx-border);
+    }
+    .bmi-ref-table tr:last-child td { border-bottom:none; }
+    .bmi-ref-dot {
+      display:inline-block; width:10px; height:10px;
+      border-radius:50%; margin-right:6px; vertical-align:middle;
+    }
+
+    @media(max-width:900px)  { .bmi-grid { grid-template-columns:1fr; } }
+    @media(max-width:768px)  {
+      .bmi-main  { padding:var(--space-4); gap:var(--space-4); }
+      .rec-grid  { grid-template-columns:1fr; }
+      .result-hero { flex-direction:column; align-items:flex-start; gap:var(--space-4); }
+      .result-number { font-size:3rem; }
+    }
+    @media(max-width:480px)  { .gender-select { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<div id="navbarMount"></div>
+
+<div class="page-wrap">
+  <div id="sidebarMount"></div>
+
+  <main class="bmi-main">
+
+    <!-- Page heading -->
+    <div>
+      <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:.25rem">BMI Calculator</h1>
+      <p style="font-size:.875rem;color:var(--rx-muted)">
+        Calculate your Body Mass Index and get personalised Nigerian-context nutrition
+        and lifestyle recommendations.
+      </p>
+    </div>
+
+    <!-- Main two-column grid -->
+    <div class="bmi-grid">
+
+      <!-- ── Left: calculator form ── -->
+      <div>
+        <div class="card">
+          <div class="section-title">⚖️ Your Measurements</div>
+
+          <!-- Live preview -->
+          <div class="live-preview" id="livePreview" style="opacity:.35">
+            <div class="live-label">Estimated BMI</div>
+            <div class="live-val" id="liveVal">—</div>
+            <div class="live-cat" id="liveCat">Enter measurements above</div>
+          </div>
+
+          <form id="bmiForm" novalidate>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="heightCm">
+                  Height <span style="color:var(--rx-muted);font-weight:400">(cm)</span>
+                </label>
+                <input class="form-control" type="number" id="heightCm" name="height_cm"
+                       placeholder="e.g. 170" min="50" max="300" step="0.1"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="weightKg">
+                  Weight <span style="color:var(--rx-muted);font-weight:400">(kg)</span>
+                </label>
+                <input class="form-control" type="number" id="weightKg" name="weight_kg"
+                       placeholder="e.g. 72" min="5" max="500" step="0.1"/>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="age">Age <span style="color:var(--rx-muted);font-weight:400">(years)</span></label>
+                <input class="form-control" type="number" id="age" name="age"
+                       placeholder="e.g. 35" min="2" max="120"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Gender</label>
+                <div class="gender-select">
+                  <div class="gender-opt selected" id="optMale" onclick="selectGender('male')">
+                    <span class="gi">♂️</span>
+                    <span class="gl">Male</span>
+                  </div>
+                  <div class="gender-opt" id="optFemale" onclick="selectGender('female')">
+                    <span class="gi">♀️</span>
+                    <span class="gl">Female</span>
+                  </div>
+                </div>
+                <input type="hidden" id="gender" name="gender" value="male"/>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:.75rem;margin-top:var(--space-2)">
+              <button type="submit" class="btn btn-primary btn-lg" id="calcBtn"
+                      style="flex:1">
+                ⚖️ Calculate BMI
+              </button>
+              <button type="button" class="btn btn-outline" id="resetBtn"
+                      title="Clear form">↺</button>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- BMI reference card -->
+        <div class="card" style="margin-top:var(--space-6)">
+          <div class="section-title">📊 BMI Reference</div>
+          <table class="bmi-ref-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>BMI Range</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="bmi-ref-dot" style="background:#3B9ECE"></span>Underweight</td>
+                <td>&lt; 18.5</td>
+                <td><span class="badge badge-info">Underweight</span></td>
+              </tr>
+              <tr>
+                <td><span class="bmi-ref-dot" style="background:#1D9E75"></span>Normal</td>
+                <td>18.5 – 24.9</td>
+                <td><span class="badge badge-safe">Healthy</span></td>
+              </tr>
+              <tr>
+                <td><span class="bmi-ref-dot" style="background:#E5A50A"></span>Overweight</td>
+                <td>25.0 – 29.9</td>
+                <td><span class="badge badge-warning">Overweight</span></td>
+              </tr>
+              <tr>
+                <td><span class="bmi-ref-dot" style="background:#E24B4A"></span>Obese Class I</td>
+                <td>30.0 – 34.9</td>
+                <td><span class="badge badge-danger">Obese I</span></td>
+              </tr>
+              <tr>
+                <td><span class="bmi-ref-dot" style="background:#A32D2D"></span>Obese Class II–III</td>
+                <td>≥ 35.0</td>
+                <td><span class="badge badge-danger">Obese II/III</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="font-size:.75rem;color:var(--rx-muted);margin-top:var(--space-4);line-height:1.6">
+            BMI is a population-level screening tool. It does not account for muscle mass,
+            bone density, or body fat distribution. Always consult an MDCN-registered physician
+            for a comprehensive health assessment.
+          </p>
+        </div>
+      </div>
+
+      <!-- ── Right: result + history ── -->
+      <div style="display:flex;flex-direction:column;gap:var(--space-6)">
+
+        <!-- Result panel -->
+        <div class="card" id="resultPanel">
+          <div class="section-title">📋 Your Result</div>
+
+          <!-- Hero row -->
+          <div class="result-hero">
+            <div>
+              <div class="result-number" id="resultBmiValue">—</div>
+              <div style="font-size:.75rem;color:var(--rx-muted);margin-top:.25rem">BMI</div>
+            </div>
+            <div class="result-info">
+              <div class="result-category" id="resultCategory">—</div>
+              <div class="result-meta" id="inputSummary"></div>
+              <div style="margin-top:.5rem" id="resultBadge"></div>
+              <div id="idealWeight"
+                   style="font-size:.75rem;color:var(--rx-muted);margin-top:.35rem"></div>
+            </div>
+          </div>
+
+          <!-- Gauge -->
+          <div class="bmi-gauge-wrap">
+            <div class="gauge-bar">
+              <div class="gauge-pointer" id="gaugePointer" style="left:50%"></div>
+            </div>
+            <div class="gauge-labels">
+              <span>Underweight<br>&lt;18.5</span>
+              <span style="text-align:center">Normal<br>18.5–25</span>
+              <span style="text-align:center">Overweight<br>25–30</span>
+              <span style="text-align:right">Obese<br>≥30</span>
+            </div>
+          </div>
+
+          <!-- Recommendations -->
+          <div class="rec-grid">
+            <div class="rec-card">
+              <h4>🥗 Nutrition</h4>
+              <ul id="nutritionList">
+                <li>Loading recommendations…</li>
+              </ul>
+            </div>
+            <div class="rec-card green">
+              <h4>🏃 Lifestyle</h4>
+              <ul id="lifestyleList">
+                <li>Loading recommendations…</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Medical note -->
+          <div class="medical-note">
+            <span style="flex-shrink:0">⚕️</span>
+            <span id="medicalNote">
+              BMI is a screening tool, not a diagnostic measure. Consult a
+              MDCN-registered physician for a comprehensive health assessment,
+              especially if you have existing medical conditions.
+            </span>
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex;gap:.75rem;margin-top:var(--space-5);flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="window.print()">🖨 Print Result</button>
+            <button class="btn btn-outline btn-sm"
+                    onclick="BmiPage.Calculator.reset()">↺ Calculate Again</button>
+          </div>
+        </div>
+
+        <!-- History + trend (authenticated only) -->
+        <div id="historySection">
+          <div class="card">
+            <div class="section-title">📈 BMI History</div>
+
+            <!-- Trend chart -->
+            <div id="trendChartWrap" class="trend-section" style="display:none">
+              <div class="trend-title">Trend over time</div>
+              <div id="trendChart" style="width:100%;min-height:60px"></div>
+            </div>
+
+            <!-- List -->
+            <div id="historyList"></div>
+
+            <!-- Empty state -->
+            <div id="historyEmpty" class="empty-state" style="display:none;padding:2rem 0">
+              <div class="empty-icon">⚖️</div>
+              <div class="empty-title">No records yet</div>
+              <div class="empty-desc">Your BMI history will appear here after your first calculation.</div>
+            </div>
+
+            <!-- Auth prompt for guests -->
+            <div id="historyAuthPrompt" class="alert alert-info" style="display:none">
+              <span>ℹ️</span>
+              <span>
+                <a href="login.html" style="font-weight:600">Sign in</a> to save your BMI records
+                and view your history over time.
+              </span>
+            </div>
+
+            <div id="historyPagination"></div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- end bmi-grid -->
+
+  </main>
+</div>
+
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/bmi.js"></script>
+<script>
+'use strict';
+
+/* ── Auth guard: this page is not available to unregistered visitors ── */
+if (!RxGuard.requireAuth()) { /* redirected to login */ }
+
+/* ── Gender selector ── */
+function selectGender(val) {
+  document.getElementById('gender').value = val;
+  document.getElementById('optMale').classList.toggle('selected',   val === 'male');
+  document.getElementById('optFemale').classList.toggle('selected', val === 'female');
+  BmiPage.Calculator.submit !== undefined && recalcLive?.();
+}
+
+/* ── Auth prompt for history section ── */
+document.addEventListener('DOMContentLoaded', () => {
+  if (!RxGuard.Auth.isAuthenticated()) {
+    document.getElementById('historyList')?.remove();
+    document.getElementById('trendChartWrap')?.remove();
+    document.getElementById('historyAuthPrompt').style.display = 'flex';
+  }
+});
+</script>
+</body>
+</html>

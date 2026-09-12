@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign In — RxGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/components.css"/>
+  <style>
+    body { display:flex; flex-direction:column; min-height:100vh; background:var(--rx-bg); }
+
+    .auth-wrapper {
+      flex:1; display:flex; align-items:stretch;
+    }
+
+    /* Left panel */
+    .auth-panel-left {
+      flex:1; display:none;
+      background:linear-gradient(155deg,#0A4FA6 0%,#0F6E56 100%);
+      padding:3rem; flex-direction:column; justify-content:space-between;
+      color:#fff; position:relative; overflow:hidden;
+    }
+    .auth-panel-left::before {
+      content:'';position:absolute;inset:0;
+      background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .auth-panel-left .brand { display:flex; align-items:center; gap:12px; margin-bottom:auto; }
+    .auth-panel-left .brand-logo {
+      width:44px;height:44px;background:rgba(255,255,255,.2);
+      border-radius:12px;display:flex;align-items:center;justify-content:center;
+      font-size:1.1rem;font-weight:800;
+    }
+    .auth-panel-left .brand-name { font-size:1.375rem;font-weight:700; }
+    .auth-panel-left .panel-content { flex:1;display:flex;flex-direction:column;justify-content:center;padding:2rem 0; }
+    .auth-panel-left h2 { font-family:var(--font-display);font-size:2rem;line-height:1.25;margin-bottom:1.25rem; }
+    .auth-panel-left p  { font-size:.9375rem;opacity:.85;line-height:1.7;margin-bottom:2rem; }
+    .feature-list { display:flex;flex-direction:column;gap:.875rem; }
+    .feature-item { display:flex;align-items:center;gap:.75rem;font-size:.875rem;opacity:.9; }
+    .feature-icon { width:32px;height:32px;background:rgba(255,255,255,.15);border-radius:8px;
+                    display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0; }
+    .panel-footer { font-size:.75rem;opacity:.6; }
+
+    /* Right panel */
+    .auth-panel-right {
+      width:100%;max-width:480px;margin:0 auto;
+      display:flex;flex-direction:column;justify-content:center;
+      padding:2.5rem 2rem;
+    }
+    .auth-card {
+      background:var(--rx-surface);
+      border:1px solid var(--rx-border);
+      border-radius:var(--radius-xl);
+      padding:2.5rem;
+      box-shadow:var(--shadow-lg);
+    }
+    .auth-logo-mobile {
+      display:flex;align-items:center;gap:10px;
+      margin-bottom:2rem;
+      font-size:1.25rem;font-weight:700;color:var(--rx-blue);
+    }
+    .auth-logo-icon {
+      width:38px;height:38px;background:var(--rx-blue);border-radius:10px;
+      display:flex;align-items:center;justify-content:center;
+      color:#fff;font-size:.9rem;font-weight:800;
+    }
+    .auth-heading { font-size:1.5rem;font-weight:700;margin-bottom:.4rem; }
+    .auth-subtext { font-size:.875rem;color:var(--rx-muted);margin-bottom:2rem; }
+
+    .divider {
+      display:flex;align-items:center;gap:1rem;
+      margin:1.25rem 0;color:var(--rx-muted);font-size:.8125rem;
+    }
+    .divider::before,.divider::after {
+      content:'';flex:1;height:1px;background:var(--rx-border);
+    }
+
+    .remember-row {
+      display:flex;align-items:center;justify-content:space-between;
+      margin-bottom:1.25rem;font-size:.8125rem;
+    }
+    .remember-row label { display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--rx-muted); }
+    .remember-row a    { color:var(--rx-blue);text-decoration:none;font-weight:500; }
+    .remember-row a:hover { text-decoration:underline; }
+
+    .auth-footer {
+      text-align:center;font-size:.8125rem;color:var(--rx-muted);margin-top:1.5rem;
+    }
+    .auth-footer a { color:var(--rx-blue);font-weight:500;text-decoration:none; }
+    .auth-footer a:hover { text-decoration:underline; }
+
+    /* Password show/hide */
+    .input-with-action { position:relative; }
+    .input-with-action .form-control { padding-right:44px; }
+    .input-action-btn {
+      position:absolute;right:12px;top:50%;transform:translateY(-50%);
+      background:none;border:none;cursor:pointer;color:var(--rx-muted);
+      font-size:.875rem;padding:4px;
+    }
+    .input-action-btn:hover { color:var(--rx-text); }
+
+    @media(min-width:900px){
+      .auth-panel-left { display:flex; }
+      .auth-panel-right { padding:3rem; border-left:1px solid var(--rx-border); }
+      .auth-logo-mobile { display:none; }
+    }
+    @media(max-width:480px){
+      .auth-panel-right { padding:1.5rem 1rem; }
+      .auth-card { padding:1.75rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="auth-wrapper">
+
+  <!-- Left decorative panel (desktop only) -->
+  <div class="auth-panel-left">
+    <div class="brand">
+      <div class="brand-logo">Rx</div>
+      <span class="brand-name">RxGuard</span>
+    </div>
+    <div class="panel-content">
+      <h2>Nigeria's Prescription Safety Platform</h2>
+      <p>Validate prescriptions, detect drug interactions, and access trusted pharmaceutical information — grounded in EMDEX and OpenFDA data.</p>
+      <div class="feature-list">
+        <div class="feature-item"><div class="feature-icon">📷</div>AI-powered prescription OCR scanning</div>
+        <div class="feature-item"><div class="feature-icon">⚠️</div>Drug interaction & contraindication checker</div>
+        <div class="feature-item"><div class="feature-icon">🇳🇬</div>Nigerian brand name registry via OpenFDA</div>
+        <div class="feature-item"><div class="feature-icon">🤖</div>Grounded AI healthcare assistant</div>
+        <div class="feature-item"><div class="feature-icon">🔒</div>NDPR-compliant data protection</div>
+      </div>
+    </div>
+    <div class="panel-footer">© 2025 RxGuard Nigeria · NAFDAC Compliant · Not a substitute for professional medical advice</div>
+  </div>
+
+  <!-- Right form panel -->
+  <div class="auth-panel-right">
+    <div class="auth-card">
+
+      <!-- Mobile logo -->
+      <div class="auth-logo-mobile">
+        <div class="auth-logo-icon">Rx</div>
+        RxGuard
+      </div>
+
+      <h1 class="auth-heading">Welcome back</h1>
+      <p class="auth-subtext">Sign in to your RxGuard account</p>
+
+      <!-- Login form -->
+      <form id="loginForm" novalidate>
+
+        <div class="form-group">
+          <label class="form-label" for="email">Email address</label>
+          <input class="form-control" type="email" id="email" name="email"
+                 placeholder="you@example.com" autocomplete="email" required/>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div class="input-with-action">
+            <input class="form-control" type="password" id="password" name="password"
+                   placeholder="••••••••" autocomplete="current-password" required/>
+            <button type="button" class="input-action-btn" id="togglePwd" aria-label="Show password">👁</button>
+          </div>
+        </div>
+
+        <div class="remember-row">
+          <label>
+            <input type="checkbox" id="rememberMe" name="remember"/>
+            Remember me for 7 days
+          </label>
+          <a href="forgot-password.html">Forgot password?</a>
+        </div>
+
+        <!-- Server-level error banner -->
+        <div id="loginError" class="alert alert-danger" style="display:none;margin-bottom:1rem">
+          <span>⛔</span><span id="loginErrorMsg"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg btn-block" id="loginBtn">
+          Sign In to RxGuard
+        </button>
+
+      </form>
+
+      <div class="auth-footer">
+        Don't have an account? <a href="register.html">Create one free</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/app.js"></script>
+<script>
+'use strict';
+
+// Redirect if already authenticated
+if (RxGuard.Auth.isAuthenticated()) {
+  window.location.href = 'dashboard.html';
+}
+
+/* ── Password toggle ── */
+document.getElementById('togglePwd').addEventListener('click', function () {
+  const pwd = document.getElementById('password');
+  const isText = pwd.type === 'text';
+  pwd.type = isText ? 'password' : 'text';
+  this.textContent = isText ? '👁' : '🙈';
+});
+
+/* ── Form submission ── */
+document.getElementById('loginForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  App.FormHelper.clearAll('loginForm');
+  hideError();
+
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  // Client-side validation
+  let valid = true;
+  if (!email) { App.FormHelper.setError('email', 'Email is required'); valid = false; }
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { App.FormHelper.setError('email', 'Enter a valid email address'); valid = false; }
+  if (!password) { App.FormHelper.setError('password', 'Password is required'); valid = false; }
+  if (!valid) return;
+
+  App.FormHelper.setLoading('loginBtn', true);
+  document.getElementById('loginBtn').textContent = '';   // spinner via CSS
+
+  try {
+    await RxGuard.Auth.login(email, password);
+    RxGuard.Toast.success('Welcome back!', 'Redirecting to your dashboard…');
+    const redirect = new URLSearchParams(window.location.search).get('redirect');
+    setTimeout(() => { window.location.href = redirect || 'dashboard.html'; }, 600);
+  } catch (err) {
+    if (err.validationErrors) {
+      App.FormHelper.applyApiErrors(err.allFieldErrors());
+    } else if (err.status === 403) {
+      showError(err.message);
+      showResendLink(email);
+    } else {
+      showError(err.message || 'Sign in failed. Please try again.');
+    }
+  } finally {
+    App.FormHelper.setLoading('loginBtn', false, 'Sign In to RxGuard');
+  }
+});
+
+function showResendLink(email) {
+  const box = document.getElementById('loginError');
+  if (box.querySelector('.resend-link')) return;
+  const link = document.createElement('a');
+  link.href = '#';
+  link.className = 'resend-link';
+  link.style.cssText = 'display:block;margin-top:.35rem;font-weight:600';
+  link.textContent = 'Resend confirmation email';
+  link.onclick = async (e) => {
+    e.preventDefault();
+    link.textContent = 'Sending…';
+    try {
+      await RxGuard.Auth.resendConfirmation(email);
+      link.textContent = 'Confirmation email sent — check your inbox.';
+    } catch {
+      link.textContent = 'Could not resend. Try again shortly.';
+    }
+  };
+  box.appendChild(link);
+}
+
+function showError(msg) {
+  document.getElementById('loginError').style.display = 'flex';
+  document.getElementById('loginErrorMsg').textContent = msg;
+}
+function hideError() {
+  document.getElementById('loginError').style.display = 'none';
+}
+</script>
+</body>
+</html>

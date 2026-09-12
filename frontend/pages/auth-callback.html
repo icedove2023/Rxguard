@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Verifying… — RxGuard</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/components.css"/>
+  <style>
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; background:var(--rx-bg); }
+    .callback-card { text-align:center; max-width:400px; padding:2rem; }
+    .spinner { width:36px;height:36px;border:3px solid var(--rx-border);border-top-color:var(--rx-blue);
+               border-radius:50%;margin:0 auto 1.25rem;animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="callback-card">
+  <div class="spinner" id="spinner"></div>
+  <h1 id="title" style="font-size:1.25rem;font-weight:700;margin-bottom:.5rem">Verifying your link…</h1>
+  <p id="message" style="color:var(--rx-muted);font-size:.9rem">Please wait a moment.</p>
+  <p id="backLink" style="margin-top:1.5rem;display:none">
+    <a href="login.html" style="color:var(--rx-blue);font-weight:500;text-decoration:none">← Back to sign in</a>
+  </p>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+'use strict';
+
+// Supabase redirects here with the session in a URL *fragment* (after #),
+// e.g. #access_token=...&refresh_token=...&expires_in=...&type=signup
+// or #error=...&error_description=... on failure.
+(function () {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const type         = params.get('type');
+  const accessToken  = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  const errorDesc    = params.get('error_description') || params.get('error');
+
+  const title    = document.getElementById('title');
+  const message  = document.getElementById('message');
+  const spinner  = document.getElementById('spinner');
+  const backLink = document.getElementById('backLink');
+
+  function fail(msg) {
+    spinner.style.display = 'none';
+    title.textContent = 'Link invalid or expired';
+    message.textContent = msg || 'Please request a new link and try again.';
+    backLink.style.display = 'block';
+  }
+
+  if (errorDesc) {
+    fail(decodeURIComponent(errorDesc.replace(/\+/g, ' ')));
+    return;
+  }
+
+  if (!accessToken) {
+    fail('Missing verification token.');
+    return;
+  }
+
+  if (type === 'recovery') {
+    // Password recovery — hand off to the "set a new password" page.
+    sessionStorage.setItem('rxguard_recovery_token', accessToken);
+    title.textContent = 'Almost there…';
+    message.textContent = 'Redirecting you to set a new password.';
+    setTimeout(() => { window.location.href = 'reset-password.html'; }, 400);
+    return;
+  }
+
+  // Signup confirmation (or magic link): Supabase has already issued a
+  // live session — log the user straight in.
+  RxGuard.TokenStore.setTokens(accessToken, refreshToken);
+  RxGuard.Auth.me()
+    .then(() => {
+      title.textContent = 'Email confirmed!';
+      message.textContent = 'Redirecting to your dashboard…';
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 500);
+    })
+    .catch(() => {
+      RxGuard.TokenStore.clearTokens();
+      fail('We confirmed your email, but couldn\'t start your session. Please log in.');
+    });
+})();
+</script>
+</body>
+</html>

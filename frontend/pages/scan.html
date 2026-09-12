@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Scan Prescription — RxGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/components.css"/>
+  <style>
+    body { display:flex; flex-direction:column; min-height:100vh; background:var(--rx-bg); }
+    .page-wrap { display:flex; flex:1; min-height:0; }
+
+    .scan-main {
+      flex:1; overflow-y:auto; padding:var(--space-8);
+      display:flex; flex-direction:column; gap:var(--space-6);
+    }
+
+    /* ── Two-column grid ── */
+    .scan-grid {
+      display:grid;
+      grid-template-columns:1.1fr 0.9fr;
+      gap:var(--space-6);
+      align-items:start;
+    }
+
+    /* ── File preview card ── */
+    #filePreview {
+      display:none; align-items:center; gap:var(--space-4);
+      background:var(--rx-surface-alt);
+      border:1px solid var(--rx-border);
+      border-radius:var(--radius-lg);
+      padding:var(--space-4);
+      margin-bottom:var(--space-5);
+    }
+    .preview-thumb {
+      width:64px; height:64px; border-radius:var(--radius-md);
+      background:var(--rx-blue-light);
+      display:flex; align-items:center; justify-content:center;
+      overflow:hidden; flex-shrink:0;
+    }
+    .preview-meta { flex:1; min-width:0; }
+    .preview-name {
+      font-size:.9375rem; font-weight:600;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .preview-detail { font-size:.8125rem; color:var(--rx-muted); margin-top:2px; }
+    .preview-actions { display:flex; gap:.5rem; flex-shrink:0; }
+
+    /* ── Progress section ── */
+    #progressSection { display:none; }
+    .progress-label {
+      font-size:.9375rem; font-weight:500;
+      margin-bottom:var(--space-4);
+      min-height:1.4rem;
+    }
+    .progress-wrap {
+      background:var(--rx-gray-200); border-radius:var(--radius-full);
+      height:8px; overflow:hidden; margin-bottom:var(--space-3);
+    }
+    #progressBar {
+      height:100%; border-radius:var(--radius-full);
+      background:var(--rx-blue);
+      transition:width .5s ease, background .3s;
+      width:0%;
+    }
+    #progressBar.red   { background:var(--rx-red); }
+    #progressBar.green { background:var(--rx-green); }
+
+    /* ── Report section ── */
+    #reportSection { display:none; }
+
+    /* ── Report summary header ── */
+    .report-header {
+      display:flex; gap:var(--space-6);
+      flex-wrap:wrap; align-items:flex-start;
+      padding:var(--space-5);
+      background:var(--rx-surface-alt);
+      border-radius:var(--radius-lg);
+      border:1px solid var(--rx-border);
+      margin-bottom:var(--space-5);
+    }
+    .report-score-block { text-align:center; flex-shrink:0; }
+    .report-meta { flex:1; min-width:200px; }
+    .report-meta h3 { font-size:1rem; font-weight:700; margin-bottom:var(--space-3); }
+    .info-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:.625rem var(--space-6);
+    }
+    .info-item label {
+      display:block; font-size:.6875rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:.5px;
+      color:var(--rx-muted); margin-bottom:2px;
+    }
+    .info-item span {
+      font-size:.875rem; font-weight:500;
+    }
+
+    /* ── Alert flags ── */
+    .report-flags { display:flex; flex-wrap:wrap; gap:.625rem; margin-bottom:var(--space-5); }
+    .flag-alert {
+      display:flex; align-items:center; gap:.5rem;
+      padding:var(--space-2) var(--space-4);
+      border-radius:var(--radius-full);
+      font-size:.8125rem; font-weight:600; border:1px solid;
+    }
+    .flag-alert.red   { background:var(--rx-red-light);   color:var(--rx-red-dark);   border-color:#F0AFAF; }
+    .flag-alert.amber { background:var(--rx-amber-light); color:var(--rx-amber-dark); border-color:#EDD098; }
+
+    /* ── Section title ── */
+    .report-section-title {
+      font-size:.9375rem; font-weight:700;
+      display:flex; align-items:center; justify-content:space-between;
+      gap:.625rem; margin-bottom:var(--space-4);
+      padding-bottom:var(--space-3);
+      border-bottom:1px solid var(--rx-border);
+    }
+
+    /* ── Drug table ── */
+    .drug-table-wrap { overflow-x:auto; }
+    .drug-table { width:100%; border-collapse:collapse; font-size:.875rem; }
+    .drug-table th {
+      background:var(--rx-gray-50); padding:9px 12px;
+      text-align:left; font-size:.75rem; font-weight:700;
+      color:var(--rx-muted); text-transform:uppercase; letter-spacing:.4px;
+      border-bottom:1px solid var(--rx-border); white-space:nowrap;
+    }
+    .drug-table td {
+      padding:10px 12px; border-bottom:1px solid var(--rx-border);
+      vertical-align:top;
+    }
+    .drug-table tr:last-child td { border-bottom:none; }
+    .drug-table tr:hover td     { background:var(--rx-gray-50); }
+
+    /* ── OCR meta ── */
+    .ocr-meta {
+      font-size:.75rem; color:var(--rx-muted);
+      padding:var(--space-3) var(--space-4);
+      background:var(--rx-surface-alt);
+      border-radius:var(--radius-sm);
+      border:1px solid var(--rx-border);
+      margin-top:var(--space-4);
+    }
+
+    /* ── Report actions ── */
+    .report-actions {
+      display:flex; flex-wrap:wrap; gap:.75rem;
+      padding-top:var(--space-5);
+      border-top:1px solid var(--rx-border);
+      margin-top:var(--space-5);
+    }
+
+    /* ── History section ── */
+    .section-title {
+      font-size:1rem; font-weight:700;
+      display:flex; align-items:center; gap:.625rem;
+      margin-bottom:var(--space-5);
+      padding-bottom:var(--space-3);
+      border-bottom:1px solid var(--rx-border);
+    }
+
+    @media(max-width:960px) { .scan-grid { grid-template-columns:1fr; } }
+    @media(max-width:768px) {
+      .scan-main { padding:var(--space-4); gap:var(--space-4); }
+      .report-header { flex-direction:column; gap:var(--space-4); }
+      .info-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="navbarMount"></div>
+
+<div class="page-wrap">
+  <div id="sidebarMount"></div>
+
+  <main class="scan-main">
+
+    <!-- Heading -->
+    <div>
+      <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:.25rem">Prescription Scanner</h1>
+      <p style="font-size:.875rem;color:var(--rx-muted)">
+        Upload a prescription image or PDF. Gemini AI extracts every field, then EMDEX
+        and OpenFDA validate drugs, check interactions, and identify Nigerian brand alternatives.
+      </p>
+    </div>
+
+    <div class="scan-grid">
+
+      <!-- ── Left: upload + progress + report ── -->
+      <div style="display:flex;flex-direction:column;gap:var(--space-6)">
+
+        <!-- Upload card -->
+        <div class="card">
+
+          <!-- Pipeline steps -->
+          <div class="scan-steps">
+            <div class="scan-step" id="step1">
+              <div class="step-num">1</div>
+              <div class="step-label">Upload</div>
+            </div>
+            <div class="scan-step" id="step2">
+              <div class="step-num">2</div>
+              <div class="step-label">OCR Extract</div>
+            </div>
+            <div class="scan-step" id="step3">
+              <div class="step-num">3</div>
+              <div class="step-label">Review &amp; Approve</div>
+            </div>
+            <div class="scan-step" id="step4">
+              <div class="step-num">4</div>
+              <div class="step-label">Safety Report</div>
+            </div>
+          </div>
+
+          <!-- Upload zone -->
+          <div class="upload-zone" id="uploadZone">
+            <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf" tabindex="-1"/>
+            <div class="upload-icon">📤</div>
+            <h3 class="upload-title">Drop your prescription here</h3>
+            <p class="upload-desc">or click to browse files from your device</p>
+            <div class="upload-formats">
+              <span class="format-tag">JPG</span>
+              <span class="format-tag">PNG</span>
+              <span class="format-tag">PDF</span>
+              <span class="format-tag">max 10 MB</span>
+            </div>
+          </div>
+
+          <!-- File preview (shown after selection) -->
+          <div id="filePreview">
+            <div class="preview-thumb" id="previewThumb">
+              <span style="font-size:1.5rem">📄</span>
+            </div>
+            <div class="preview-meta">
+              <div class="preview-name" id="previewName">filename.jpg</div>
+              <div class="preview-detail">
+                <span id="previewType" class="badge badge-info" style="font-size:.7rem"></span>
+                <span id="previewSize" style="margin-left:.375rem"></span>
+              </div>
+            </div>
+            <div class="preview-actions">
+              <button class="btn btn-outline btn-sm" id="clearBtn">✕ Remove</button>
+            </div>
+          </div>
+
+          <!-- Progress (shown during scan) -->
+          <div id="progressSection">
+            <div class="progress-label" id="progressLabel">Preparing…</div>
+            <div class="progress-wrap">
+              <div id="progressBar"></div>
+            </div>
+            <button class="btn btn-outline btn-sm" id="retryScanBtn"
+                    style="display:none;margin-top:var(--space-3)">
+              ↺ Try Again
+            </button>
+          </div>
+
+          <!-- Scan button -->
+          <div id="scanBtnWrap" style="margin-top:var(--space-4)">
+            <button class="btn btn-primary btn-lg btn-block" id="scanBtn">
+              🔍 Extract Text (Tesseract OCR)
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Review & Approve (raw OCR text + optional Gemini suggestion) ── -->
+        <div id="reviewSection" style="display:none">
+          <div class="card">
+            <div class="report-section-title" style="margin-bottom:var(--space-2)">
+              📝 Review Extracted Text
+              <span id="reviewOcrMeta" class="ocr-meta" style="display:inline;font-size:.7rem"></span>
+            </div>
+            <p style="font-size:.8125rem;color:var(--rx-muted);margin-bottom:var(--space-4)">
+              This text came straight from open-source OCR (Tesseract) and may contain misreads.
+              Edit it directly below, or ask Gemini to suggest corrections — nothing is checked
+              against EMDEX/OpenFDA until you approve the final text.
+            </p>
+
+            <div class="form-group">
+              <label class="form-label" for="ocrTextArea">Extracted text (editable)</label>
+              <textarea class="form-control" id="ocrTextArea" rows="10"
+                        style="font-family:ui-monospace,monospace;font-size:.8125rem;line-height:1.5"></textarea>
+            </div>
+
+            <button class="btn btn-outline btn-sm" id="suggestBtn" type="button">
+              ✨ Ask Gemini to Suggest Corrections
+            </button>
+
+            <!-- Gemini's suggestion (shown after suggestBtn clicked) -->
+            <div id="suggestionBox" style="display:none;margin-top:var(--space-4)">
+              <div class="card" style="background:var(--rx-bg-alt,#f8fafc);border:1px dashed var(--rx-border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2)">
+                  <strong style="font-size:.8125rem">✨ Gemini's suggested version</strong>
+                  <button class="btn btn-primary btn-sm" id="useSuggestionBtn" type="button">Use This Version</button>
+                </div>
+                <pre id="suggestedTextPreview"
+                     style="white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:.8125rem;
+                            line-height:1.5;max-height:220px;overflow:auto;margin:0"></pre>
+                <div id="suggestionNotes" style="margin-top:var(--space-3);font-size:.75rem;color:var(--rx-muted)"></div>
+              </div>
+            </div>
+
+            <div id="suggestError" class="alert alert-danger" style="display:none;margin-top:var(--space-3)">
+              <span>⛔</span><span id="suggestErrorMsg"></span>
+            </div>
+
+            <div style="margin-top:var(--space-5);display:flex;gap:.75rem;flex-wrap:wrap">
+              <button class="btn btn-primary btn-lg" id="approveBtn" type="button" style="flex:1;min-width:220px">
+                ✅ Approve &amp; Validate (EMDEX + OpenFDA)
+              </button>
+            </div>
+            <div id="approveError" class="alert alert-danger" style="display:none;margin-top:var(--space-3)">
+              <span>⛔</span><span id="approveErrorMsg"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Safety report ── -->
+        <div id="reportSection" style="display:none">
+          <div class="card" style="padding:0;overflow:hidden">
+
+            <!-- Report header bar -->
+            <div style="padding:var(--space-5) var(--space-5) 0">
+              <div class="report-section-title">
+                📋 Prescription Safety Report
+                <span id="ocrMeta" class="ocr-meta" style="display:inline;font-size:.7rem"></span>
+              </div>
+            </div>
+
+            <div style="padding:0 var(--space-5) var(--space-5)">
+
+              <!-- Score + patient summary -->
+              <div class="report-header">
+                <div class="report-score-block">
+                  <div class="safety-score-display">
+                    <div class="score-value gray" id="scoreValue">—</div>
+                    <div class="score-label" id="scoreLabel">Safety Score</div>
+                    <div id="completenessScore"
+                         style="font-size:.75rem;color:var(--rx-muted);margin-top:.35rem"></div>
+                  </div>
+                </div>
+
+                <div class="report-meta">
+                  <h3>Patient &amp; Prescriber</h3>
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <label>Patient Name</label>
+                      <span id="patientName">—</span>
+                    </div>
+                    <div class="info-item">
+                      <label>Date</label>
+                      <span id="rxDate">—</span>
+                    </div>
+                    <div class="info-item">
+                      <label>Age / Gender</label>
+                      <span>
+                        <span id="patientAge">—</span>
+                        / <span id="patientGender">—</span>
+                      </span>
+                    </div>
+                    <div class="info-item">
+                      <label>Prescriber</label>
+                      <span id="prescriberName">—</span>
+                    </div>
+                    <div class="info-item">
+                      <label>Reg. No.</label>
+                      <span id="prescriberReg">—</span>
+                    </div>
+                    <div class="info-item">
+                      <label>Hospital</label>
+                      <span id="prescriberHosp">—</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Alert flags -->
+              <div class="report-flags">
+                <div id="flagInteractions" class="flag-alert red" style="display:none">
+                  ⛔ Drug interactions detected — review required
+                </div>
+                <div id="flagErrors" class="flag-alert amber" style="display:none">
+                  ⚠️ Prescription errors or missing fields found
+                </div>
+              </div>
+
+              <!-- Drug table -->
+              <div style="margin-bottom:var(--space-6)">
+                <div class="report-section-title">
+                  💊 Extracted Medications
+                </div>
+                <div class="drug-table-wrap">
+                  <table class="drug-table">
+                    <thead>
+                      <tr>
+                        <th>Drug Name</th>
+                        <th>Strength</th>
+                        <th>Instructions</th>
+                        <th>Duration</th>
+                        <th>🇳🇬 Brands</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="drugTableBody">
+                      <tr><td colspan="6" style="text-align:center;color:var(--rx-muted);padding:2rem">
+                        Loading drugs…
+                      </td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Interactions -->
+              <div>
+                <div class="report-section-title">
+                  ⚠️ Interaction Analysis
+                  <span id="interactionsCount"
+                        style="font-size:.8125rem;font-weight:500;color:var(--rx-muted)"></span>
+                </div>
+
+                <div id="interactionsList"></div>
+
+                <div id="interactionsEmpty"
+                     style="display:none;text-align:center;padding:2rem;
+                            background:var(--rx-green-light);border-radius:var(--radius-lg);
+                            border:1px solid #A5D9C5">
+                  <div style="font-size:1.75rem;margin-bottom:.5rem">✅</div>
+                  <div style="font-size:.9375rem;font-weight:700;color:var(--rx-green-dark);
+                              margin-bottom:.35rem">No Interactions Found</div>
+                  <div style="font-size:.8125rem;color:var(--rx-green-dark)">
+                    No known drug interactions detected. Always confirm with a
+                    PCN-registered pharmacist before dispensing.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Report actions -->
+              <div class="report-actions">
+                <button class="btn btn-primary btn-sm" onclick="window.print()">
+                  🖨 Print Report
+                </button>
+                <a href="checker.html" class="btn btn-outline btn-sm">
+                  ⚠️ Full Drug Checker
+                </a>
+                <button class="btn btn-outline btn-sm"
+                        onclick="ScannerPage.clearUpload()">
+                  📷 Scan Another
+                </button>
+              </div>
+
+            </div><!-- /inner padding -->
+          </div>
+        </div><!-- /report section -->
+
+      </div><!-- /left column -->
+
+      <!-- ── Right: history + tips ── -->
+      <div style="display:flex;flex-direction:column;gap:var(--space-6)">
+
+        <!-- Scan history -->
+        <div class="card" id="historyCard">
+          <div class="section-title">
+            🕐 Recent Prescriptions
+            <a href="dashboard.html" style="font-size:.8125rem;color:var(--rx-blue);
+               font-weight:500;text-decoration:none">View all →</a>
+          </div>
+
+          <div id="historyList"></div>
+
+          <div id="historyEmpty" style="display:none">
+            <div style="text-align:center;padding:1.5rem 0;color:var(--rx-muted)">
+              <div style="font-size:1.5rem;margin-bottom:.5rem">📋</div>
+              <div style="font-size:.875rem">No scans yet. Upload your first prescription above.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scan tips -->
+        <div class="card">
+          <div class="section-title">💡 Tips for Best Results</div>
+          <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+
+            <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+              <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px">📸</span>
+              <div>
+                <div style="font-size:.875rem;font-weight:600;margin-bottom:2px">Good lighting</div>
+                <div style="font-size:.8125rem;color:var(--rx-muted);line-height:1.55">
+                  Photograph in bright, even light. Avoid shadows across the text.
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+              <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px">📐</span>
+              <div>
+                <div style="font-size:.875rem;font-weight:600;margin-bottom:2px">Flat and aligned</div>
+                <div style="font-size:.8125rem;color:var(--rx-muted);line-height:1.55">
+                  Place the prescription flat. Align the camera directly above it.
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+              <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px">🔍</span>
+              <div>
+                <div style="font-size:.875rem;font-weight:600;margin-bottom:2px">Full prescription visible</div>
+                <div style="font-size:.8125rem;color:var(--rx-muted);line-height:1.55">
+                  Capture the entire document including the prescriber's stamp and date.
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+              <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px">📄</span>
+              <div>
+                <div style="font-size:.875rem;font-weight:600;margin-bottom:2px">Use PDF when possible</div>
+                <div style="font-size:.8125rem;color:var(--rx-muted);line-height:1.55">
+                  Electronic/printed prescriptions in PDF format give the highest OCR accuracy.
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Data sources -->
+        <div class="card" style="padding:var(--space-4)">
+          <div style="font-size:.75rem;font-weight:700;color:var(--rx-muted);
+                      text-transform:uppercase;letter-spacing:.5px;margin-bottom:var(--space-3)">
+            Validation Sources
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.5rem">
+            <div style="display:flex;align-items:center;gap:.625rem;font-size:.8125rem">
+              <span class="badge badge-info">Gemini AI</span> OCR extraction + field analysis
+            </div>
+            <div style="display:flex;align-items:center;gap:.625rem;font-size:.8125rem">
+              <span class="badge badge-info">EMDEX</span> Drug monograph + interaction check
+            </div>
+            <div style="display:flex;align-items:center;gap:.625rem;font-size:.8125rem">
+              <span class="badge badge-success">OpenFDA</span> Nigerian brand registry
+            </div>
+          </div>
+          <div style="margin-top:var(--space-4);font-size:.75rem;color:var(--rx-muted);line-height:1.6">
+            ⚕️ RxGuard is a decision-support tool. Always verify recommendations with a
+            PCN-registered pharmacist before dispensing.
+          </div>
+        </div>
+
+      </div><!-- /right column -->
+
+    </div><!-- /scan-grid -->
+  </main>
+</div>
+
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/scanner.js"></script>
+<script>
+'use strict';
+
+/* ── Auth guard: this page is not available to unregistered visitors ── */
+if (!RxGuard.requireAuth()) { /* redirected to login */ }
+</script>
+</body>
+</html>

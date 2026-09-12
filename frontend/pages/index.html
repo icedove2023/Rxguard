@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="RxGuard — Nigeria's prescription validation and medication safety platform. Scan prescriptions, check drug interactions, and get AI-powered healthcare guidance."/>
+  <title>RxGuard — A Prescription Safety Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/components.css"/>
+  <link rel="manifest" href="../manifest.json"/>
+  <meta name="theme-color" content="#0A4FA6"/>
+</head>
+<body>
+
+<!-- ================================================================
+     NAVBAR
+================================================================ -->
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+  <a href="index.html" class="navbar-brand">
+    <div class="navbar-logo" aria-hidden="true">Rx</div>
+    RxGuard
+  </a>
+
+  <div class="navbar-nav" id="navLinks">
+    <a href="index.html"     class="nav-link active">Home</a>
+    <a href="dashboard.html" class="nav-link">Dashboard</a>
+    <a href="scan.html"      class="nav-link">Scan Rx</a>
+    <a href="checker.html"   class="nav-link">Drug Checker</a>
+    <a href="chatbot.html"   class="nav-link">AI Assistant</a>
+    <a href="bmi.html"       class="nav-link">BMI</a>
+  </div>
+
+  <div class="navbar-actions">
+    <div id="navGuest">
+      <a href="login.html"    class="btn btn-outline btn-sm">Sign In</a>
+      <a href="register.html" class="btn btn-primary btn-sm">Get Started</a>
+    </div>
+    <div id="navUser" style="display:none;align-items:center;gap:12px">
+      <a href="dashboard.html" class="btn btn-primary btn-sm">My Dashboard →</a>
+    </div>
+  </div>
+
+  <button class="navbar-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+    <span style="font-size:1.4rem">☰</span>
+  </button>
+</nav>
+
+<!-- ================================================================
+     HERO
+================================================================ -->
+<main>
+  <section class="hero" aria-labelledby="heroTitle">
+    <div style="max-width:680px;margin:0 auto">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);
+                  border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:5px 14px;
+                  font-size:.8125rem;font-weight:500;color:rgba(255,255,255,.9);margin-bottom:1.5rem">
+        🇳🇬 Built for Nigeria · NDPR Compliant · EMDEX Integrated
+      </div>
+      <h1 class="hero-title" id="heroTitle">Nigeria's Prescription Safety Platform</h1>
+      <p class="hero-desc">
+        Validate prescriptions, detect dangerous drug interactions, and access trusted
+        pharmaceutical information — powered by Gemini AI, EMDEX, and the Openfda
+        Nigerian drug registry.
+      </p>
+      <div class="hero-actions">
+        <a href="scan.html"    class="btn btn-primary btn-lg">📷 Scan Prescription</a>
+        <a href="chatbot.html" class="btn btn-ghost btn-lg">🤖 Ask AI Assistant</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats bar -->
+  <section class="stats-bar" aria-label="Platform statistics">
+    <div class="stat-item">
+      <div class="stat-number">50K+</div>
+      <div class="stat-desc">Prescriptions Validated</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">12K+</div>
+      <div class="stat-desc">Interactions Detected</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">3,400+</div>
+      <div class="stat-desc">Nigerian Drug Brands</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">99.2%</div>
+      <div class="stat-desc">Detection Accuracy</div>
+    </div>
+  </section>
+
+  <!-- Features grid -->
+  <section style="padding:4rem 2rem;max-width:1200px;margin:0 auto" aria-label="Features">
+    <div style="text-align:center;margin-bottom:3rem">
+      <h2 style="font-size:1.875rem;margin-bottom:.75rem">Everything you need for medication safety</h2>
+      <p style="color:var(--rx-muted);font-size:1.0625rem;max-width:520px;margin:0 auto">
+        A complete platform for consumers, pharmacists, and physicians across Nigeria.
+      </p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem">
+
+      <a href="scan.html" class="card card-hover" style="text-decoration:none">
+        <div style="width:48px;height:48px;border-radius:12px;background:var(--rx-blue-light);
+                    display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:1rem">
+          📷
+        </div>
+        <h3 style="font-size:1rem;margin-bottom:.5rem">Prescription Scanner</h3>
+        <p style="font-size:.875rem;color:var(--rx-muted);line-height:1.6">
+          Upload handwritten or printed prescriptions. Gemini OCR extracts every field
+          and validates completeness with a detailed safety score.
+        </p>
+        <div style="margin-top:1rem;font-size:.8125rem;color:var(--rx-blue);font-weight:600">
+          Scan now →
+        </div>
+      </a>
+
+      <a href="checker.html" class="card card-hover" style="text-decoration:none">
+        <div style="width:48px;height:48px;border-radius:12px;background:var(--rx-red-light);
+                    display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:1rem">
+          ⚠️
+        </div>
+        <h3 style="font-size:1rem;margin-bottom:.5rem">Drug Interaction Checker</h3>
+        <p style="font-size:.875rem;color:var(--rx-muted);line-height:1.6">
+          Check major, moderate, and minor interactions. Supports pregnancy
+          flags, duplicate therapy detection, and contraindication screening.
+        </p>
+        <div style="margin-top:1rem;font-size:.8125rem;color:var(--rx-blue);font-weight:600">
+          Check drugs →
+        </div>
+      </a>
+
+      <a href="chatbot.html" class="card card-hover" style="text-decoration:none">
+        <div style="width:48px;height:48px;border-radius:12px;background:var(--rx-green-light);
+                    display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:1rem">
+          🤖
+        </div>
+        <h3 style="font-size:1rem;margin-bottom:.5rem">AI Healthcare Assistant</h3>
+        <p style="font-size:.875rem;color:var(--rx-muted);line-height:1.6">
+          Ask about medications, nutrition, and lifestyle. All answers are grounded
+          in verified EMDEX and Openfda data — no hallucinations.
+        </p>
+        <div style="margin-top:1rem;font-size:.8125rem;color:var(--rx-blue);font-weight:600">
+          Start chatting →
+        </div>
+      </a>
+
+      <a href="bmi.html" class="card card-hover" style="text-decoration:none">
+        <div style="width:48px;height:48px;border-radius:12px;background:var(--rx-amber-light);
+                    display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:1rem">
+          ⚖️
+        </div>
+        <h3 style="font-size:1rem;margin-bottom:.5rem">BMI & Nutrition Guide</h3>
+        <p style="font-size:.875rem;color:var(--rx-muted);line-height:1.6">
+          Calculate BMI and receive personalised Nigerian-context nutrition and
+          lifestyle recommendations based on your health profile.
+        </p>
+        <div style="margin-top:1rem;font-size:.8125rem;color:var(--rx-blue);font-weight:600">
+          Calculate BMI →
+        </div>
+      </a>
+
+      <div class="card">
+        <div style="width:48px;height:48px;border-radius:12px;background:var(--rx-blue-light);
+                    display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:1rem">
+          📚
+        </div>
+        <h3 style="font-size:1rem;margin-bottom:.5rem">EMDEX Drug Monograph</h3>
+        <p style="font-size:.875rem;color:var(--rx-muted);line-height:1.6">
+          Complete drug information: indications, standard dosage, contraindications,
+          pregnancy categories, side effects, and storage conditions.
+        </p>
+        <div style="margin-top:1rem">
+          <span class="badge badge-info">EMDEX Powered</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="width:48px;height:48px;border-radius:12px;background:var(--rx-green-light);
+                    display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:1rem">
+          🇳🇬
+        </div>
+        <h3 style="font-size:1rem;margin-bottom:.5rem">Nigerian Brand Registry</h3>
+        <p style="font-size:.875rem;color:var(--rx-muted);line-height:1.6">
+          Find local equivalents for all generic medications. Manufacturers,
+          dosage forms, strengths, and NAFDAC registration numbers.
+        </p>
+        <div style="margin-top:1rem">
+          <span class="badge badge-success">Openfda Powered</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section style="background:var(--rx-surface);padding:4rem 2rem;border-top:1px solid var(--rx-border)">
+    <div style="max-width:900px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:3rem">
+        <h2 style="font-size:1.875rem;margin-bottom:.75rem">How RxGuard works</h2>
+        <p style="color:var(--rx-muted);font-size:1rem">
+          From prescription upload to safety report in under 30 seconds.
+        </p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:2rem;text-align:center">
+        <div>
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--rx-blue);color:#fff;
+                      font-size:1.25rem;font-weight:800;display:flex;align-items:center;justify-content:center;
+                      margin:0 auto 1rem">1</div>
+          <h4 style="font-size:.9375rem;margin-bottom:.5rem">Upload</h4>
+          <p style="font-size:.8125rem;color:var(--rx-muted)">Upload JPG, PNG, or PDF prescription</p>
+        </div>
+        <div>
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--rx-blue-mid);color:#fff;
+                      font-size:1.25rem;font-weight:800;display:flex;align-items:center;justify-content:center;
+                      margin:0 auto 1rem">2</div>
+          <h4 style="font-size:.9375rem;margin-bottom:.5rem">OCR</h4>
+          <p style="font-size:.8125rem;color:var(--rx-muted)">Gemini Vision extracts all prescription fields</p>
+        </div>
+        <div>
+          <div style="width:56px;height:56px;border-radius:50%;background:#145499;color:#fff;
+                      font-size:1.25rem;font-weight:800;display:flex;align-items:center;justify-content:center;
+                      margin:0 auto 1rem">3</div>
+          <h4 style="font-size:.9375rem;margin-bottom:.5rem">Validate</h4>
+          <p style="font-size:.8125rem;color:var(--rx-muted)">EMDEX + Openfda check dosage, interactions, brands</p>
+        </div>
+        <div>
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--rx-green);color:#fff;
+                      font-size:1.25rem;font-weight:800;display:flex;align-items:center;justify-content:center;
+                      margin:0 auto 1rem">4</div>
+          <h4 style="font-size:.9375rem;margin-bottom:.5rem">Report</h4>
+          <p style="font-size:.8125rem;color:var(--rx-muted)">Safety score, errors, and alternatives delivered</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section style="background:linear-gradient(135deg,#0A4FA6,#0F6E56);padding:4rem 2rem;text-align:center;color:#fff">
+    <h2 style="font-family:var(--font-display);font-size:2rem;margin-bottom:1rem">
+      Start validating prescriptions today
+    </h2>
+    <p style="opacity:.85;font-size:1rem;max-width:480px;margin:0 auto 2rem">
+      Join thousands of Nigerians using RxGuard to ensure medication safety.
+      Free for consumers. Professional plans for pharmacists and physicians.
+    </p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+      <a href="register.html" class="btn btn-primary btn-lg" style="background:#fff;color:var(--rx-blue);border-color:#fff">
+        Create Free Account
+      </a>
+      <a href="scan.html" class="btn btn-ghost btn-lg">Scan Without Account</a>
+    </div>
+  </section>
+</main>
+
+<!-- Footer -->
+<footer style="background:var(--rx-surface);border-top:1px solid var(--rx-border);
+               padding:2rem;text-align:center;font-size:.8125rem;color:var(--rx-muted)">
+  <div style="margin-bottom:.5rem">
+    <strong style="color:var(--rx-blue)">RxGuard</strong> — Nigeria's Prescription Safety Platform
+  </div>
+  <div style="display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap">
+    <a href="#" style="color:var(--rx-muted)">Privacy Policy (NDPR)</a>
+    <a href="#" style="color:var(--rx-muted)">Terms of Service</a>
+    <a href="#" style="color:var(--rx-muted)">Contact Support</a>
+    <a href="#" style="color:var(--rx-muted)">API Documentation</a>
+  </div>
+  <div style="margin-top:.75rem">
+    © 2025 RxGuard Nigeria. Licensed under NAFDAC guidelines. Not a substitute for professional medical advice.
+  </div>
+</footer>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/app.js"></script>
+<script>
+  // Update nav based on auth state
+  document.addEventListener('DOMContentLoaded', () => {
+    if (RxGuard.Auth.isAuthenticated()) {
+      document.getElementById('navGuest').style.display = 'none';
+      document.getElementById('navUser').style.display  = 'flex';
+    }
+
+    // Mobile nav toggle
+    const toggle  = document.getElementById('navToggle');
+    const navLinks= document.getElementById('navLinks');
+    toggle.addEventListener('click', () => {
+      const isOpen = navLinks.style.display === 'flex';
+      navLinks.style.display = isOpen ? '' : 'flex';
+      navLinks.style.flexDirection = 'column';
+      navLinks.style.position      = 'absolute';
+      navLinks.style.top           = '64px';
+      navLinks.style.left          = '0';
+      navLinks.style.right         = '0';
+      navLinks.style.background    = 'var(--rx-surface)';
+      navLinks.style.padding       = '1rem';
+      navLinks.style.borderBottom  = '1px solid var(--rx-border)';
+      navLinks.style.zIndex        = '999';
+      toggle.setAttribute('aria-expanded', String(!isOpen));
+    });
+  });
+</script>
+</body>
+</html>

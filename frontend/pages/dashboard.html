@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — RxGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/components.css"/>
+  <style>
+    body { display:flex; flex-direction:column; min-height:100vh; background:var(--rx-bg); }
+    .page-wrap { display:flex; flex:1; min-height:0; }
+
+    /* ── Main area ── */
+    .dash-main {
+      flex:1; overflow-y:auto; padding:var(--space-8);
+      display:flex; flex-direction:column; gap:var(--space-6);
+    }
+
+    /* ── Greeting bar ── */
+    .greeting-bar {
+      display:flex; align-items:flex-start; justify-content:space-between;
+      flex-wrap:wrap; gap:var(--space-4);
+    }
+    .greeting-title {
+      font-size:1.5rem; font-weight:700; margin-bottom:.25rem;
+    }
+    .greeting-meta {
+      display:flex; align-items:center; gap:.625rem;
+      font-size:.8125rem; color:var(--rx-muted);
+    }
+
+    /* ── Metrics grid ── */
+    .metrics-grid {
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:var(--space-4);
+    }
+
+    /* ── Content grid ── */
+    .content-grid {
+      display:grid;
+      grid-template-columns:1.6fr 1fr;
+      gap:var(--space-6);
+    }
+
+    /* ── Bottom grid ── */
+    .bottom-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:var(--space-6);
+    }
+
+    /* ── Quick actions ── */
+    .quick-actions {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:var(--space-3);
+    }
+    .qa-btn {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:var(--space-2); padding:var(--space-5) var(--space-3);
+      background:var(--rx-surface); border:1px solid var(--rx-border);
+      border-radius:var(--radius-lg); cursor:pointer;
+      transition:all var(--transition); text-decoration:none;
+    }
+    .qa-btn:hover {
+      border-color:var(--rx-blue); background:var(--rx-blue-xlight);
+      transform:translateY(-2px); box-shadow:var(--shadow-sm);
+      text-decoration:none;
+    }
+    .qa-icon { font-size:1.75rem; }
+    .qa-label { font-size:.8125rem; font-weight:600; color:var(--rx-text); text-align:center; }
+    .qa-desc  { font-size:.75rem; color:var(--rx-muted); text-align:center; }
+
+    /* ── Card header row ── */
+    .card-header-row {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:var(--space-4);
+    }
+    .card-heading { font-size:.9375rem; font-weight:600; }
+
+    /* ── Alert items ── */
+    .alert-item {
+      display:flex; gap:var(--space-3); padding:var(--space-3) 0;
+      border-bottom:1px solid var(--rx-border);
+    }
+    .alert-item:last-child { border-bottom:none; }
+
+    /* ── Activity feed ── */
+    .activity-item {
+      display:flex; align-items:flex-start; gap:var(--space-3);
+      padding:var(--space-3) 0; border-bottom:1px solid var(--rx-border);
+      font-size:.875rem;
+    }
+    .activity-item:last-child { border-bottom:none; }
+    .activity-icon {
+      width:30px; height:30px; border-radius:50%; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; font-size:.875rem;
+    }
+    .activity-body { flex:1; }
+    .activity-time { font-size:.75rem; color:var(--rx-muted); margin-top:2px; }
+
+    /* ── Professional badge ── */
+    .prof-notice {
+      background:var(--rx-amber-light); border:1px solid #EDD098;
+      border-radius:var(--radius-lg); padding:var(--space-4) var(--space-5);
+      display:flex; align-items:flex-start; gap:var(--space-3);
+    }
+
+    @media(max-width:1100px) {
+      .metrics-grid { grid-template-columns:repeat(2,1fr); }
+      .content-grid { grid-template-columns:1fr; }
+      .bottom-grid  { grid-template-columns:1fr 1fr; }
+    }
+    @media(max-width:768px) {
+      .dash-main    { padding:var(--space-4); gap:var(--space-4); }
+      .quick-actions{ grid-template-columns:repeat(2,1fr); }
+      .metrics-grid { grid-template-columns:repeat(2,1fr); }
+      .bottom-grid  { grid-template-columns:1fr; }
+    }
+    @media(max-width:480px) {
+      .metrics-grid { grid-template-columns:1fr 1fr; }
+      .quick-actions{ grid-template-columns:1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navbar injected by app.js -->
+<div id="navbarMount"></div>
+
+<div class="page-wrap">
+
+  <!-- Sidebar injected by dashboard.js -->
+  <div id="sidebarMount"></div>
+
+  <!-- ── Main content ── -->
+  <main class="dash-main" id="dashMain">
+
+    <!-- Greeting -->
+    <div class="greeting-bar">
+      <div>
+        <h1 class="greeting-title" id="greetName">Loading…</h1>
+        <div class="greeting-meta">
+          <span id="greetRole"></span>
+          <span>·</span>
+          <span id="greetDate"></span>
+        </div>
+      </div>
+      <div style="display:flex;gap:.625rem;flex-wrap:wrap">
+        <a href="scan.html" class="btn btn-primary">
+          <span>📷</span> New Scan
+        </a>
+        <a href="checker.html" class="btn btn-outline">
+          <span>⚠️</span> Check Drugs
+        </a>
+      </div>
+    </div>
+
+    <!-- Professional licence notice (hidden for consumers / verified professionals) -->
+    <div id="licenceNotice" class="prof-notice" style="display:none">
+      <span style="font-size:1.25rem;flex-shrink:0">⏳</span>
+      <div>
+        <div style="font-size:.9375rem;font-weight:600;margin-bottom:.25rem">Licence verification pending</div>
+        <div style="font-size:.8125rem;color:var(--rx-amber-dark)">
+          Your professional registration is under review. Full clinical features will be unlocked
+          within 24 hours once our admin team verifies your licence number.
+        </div>
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-value" id="metricTotal">—</div>
+        <div class="metric-label" id="metricTotalLabel">Prescriptions Scanned</div>
+        <div class="metric-change neutral" id="metricTotalChange">Loading…</div>
+      </div>
+      <div class="metric-card green">
+        <div class="metric-value" id="metricScore">—</div>
+        <div class="metric-label">Avg. Safety Score</div>
+        <div class="metric-change neutral" id="metricScoreChange">All time</div>
+      </div>
+      <div class="metric-card red">
+        <div class="metric-value" id="metricAlerts">—</div>
+        <div class="metric-label" id="metricAlertLabel">Interaction Alerts</div>
+        <div class="metric-change neutral" id="metricAlertChange">Loading…</div>
+      </div>
+      <div class="metric-card amber">
+        <div class="metric-value" id="metricMeds">—</div>
+        <div class="metric-label" id="metricMedLabel">BMI Records</div>
+        <div class="metric-change neutral" id="metricMedChange">All time</div>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="card" style="padding:var(--space-5)">
+      <div class="card-header-row">
+        <span class="card-heading">Quick actions</span>
+      </div>
+      <div class="quick-actions">
+        <button class="qa-btn" id="btnNewScan">
+          <span class="qa-icon">📷</span>
+          <span class="qa-label">Scan Prescription</span>
+          <span class="qa-desc">Upload & validate</span>
+        </button>
+        <button class="qa-btn" id="btnCheckDrug">
+          <span class="qa-icon">⚠️</span>
+          <span class="qa-label">Drug Checker</span>
+          <span class="qa-desc">Interaction check</span>
+        </button>
+        <button class="qa-btn" id="btnAskAI">
+          <span class="qa-icon">🤖</span>
+          <span class="qa-label">AI Assistant</span>
+          <span class="qa-desc">Ask a question</span>
+        </button>
+        <button class="qa-btn" id="btnBmi">
+          <span class="qa-icon">⚖️</span>
+          <span class="qa-label">BMI Calculator</span>
+          <span class="qa-desc">Check & track</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Content grid: Prescriptions + Alerts -->
+    <div class="content-grid">
+
+      <!-- Prescriptions list -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="card-header-row" style="padding:var(--space-5) var(--space-5) 0">
+          <span class="card-heading">Recent Prescriptions</span>
+          <a href="scan.html" class="btn btn-outline btn-sm">+ New Scan</a>
+        </div>
+
+        <!-- Filter chips -->
+        <div style="display:flex;gap:.5rem;padding:var(--space-3) var(--space-5);flex-wrap:wrap;border-bottom:1px solid var(--rx-border)">
+          <button class="quick-chip active-chip" onclick="filterRx('all',this)"
+                  style="background:var(--rx-blue-light);color:var(--rx-blue);border-color:var(--rx-blue)">
+            All
+          </button>
+          <button class="quick-chip" onclick="filterRx('completed',this)">✅ Completed</button>
+          <button class="quick-chip" onclick="filterRx('flagged',this)">⛔ Flagged</button>
+          <button class="quick-chip" onclick="filterRx('pending',this)">⏳ Pending</button>
+        </div>
+
+        <div id="rxList" style="padding:0 var(--space-5)">
+          <!-- Populated by dashboard.js -->
+        </div>
+
+        <div id="rxEmpty" class="empty-state" style="display:none;padding:3rem var(--space-5)">
+          <div class="empty-icon">📋</div>
+          <div class="empty-title">No prescriptions yet</div>
+          <div class="empty-desc" style="margin-bottom:1rem">Upload your first prescription to get started</div>
+          <a href="scan.html" class="btn btn-primary btn-sm">Scan Prescription</a>
+        </div>
+
+        <div id="rxPagination" style="padding:var(--space-4) var(--space-5)"></div>
+      </div>
+
+      <!-- Interaction alerts + notifications -->
+      <div style="display:flex;flex-direction:column;gap:var(--space-6)">
+
+        <!-- Drug interaction alerts -->
+        <div class="card">
+          <div class="card-header-row">
+            <span class="card-heading">⚠️ Interaction Alerts</span>
+            <a href="checker.html" style="font-size:.8125rem;color:var(--rx-blue);text-decoration:none;font-weight:500">
+              Check drugs →
+            </a>
+          </div>
+          <div id="interactionAlerts">
+            <div class="rx-item" style="pointer-events:none">
+              <div class="skeleton" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:6px"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:5px">
+                <div class="skeleton" style="height:12px;width:70%;border-radius:4px"></div>
+                <div class="skeleton" style="height:10px;width:90%;border-radius:4px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="card">
+          <div class="card-header-row">
+            <span class="card-heading">🔔 Notifications</span>
+            <span id="alertSidebarBadge" class="badge badge-danger" style="display:none">0</span>
+          </div>
+          <div id="alertsList">
+            <!-- Populated by dashboard.js -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Bottom grid: Activity + BMI + Medication summary -->
+    <div class="bottom-grid">
+
+      <!-- Recent activity -->
+      <div class="card">
+        <div class="card-header-row">
+          <span class="card-heading">📅 Recent Activity</span>
+        </div>
+        <div id="activityFeed">
+          <div class="activity-item">
+            <div class="activity-icon" style="background:var(--rx-blue-light)">📷</div>
+            <div class="activity-body">
+              <div>Prescription uploaded and analysed</div>
+              <div class="activity-time">Loading…</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon" style="background:var(--rx-green-light)">⚖️</div>
+            <div class="activity-body">
+              <div>BMI calculated and recorded</div>
+              <div class="activity-time">Loading…</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon" style="background:var(--rx-amber-light)">🤖</div>
+            <div class="activity-body">
+              <div>AI assistant session started</div>
+              <div class="activity-time">Loading…</div>
+            </div>
+          </div>
+        </div>
+        <a href="profile.html" class="btn btn-outline btn-sm btn-block" style="margin-top:var(--space-4)">
+          View full activity log
+        </a>
+      </div>
+
+      <!-- BMI summary -->
+      <div class="card">
+        <div class="card-header-row">
+          <span class="card-heading">⚖️ BMI Summary</span>
+          <a href="bmi.html" style="font-size:.8125rem;color:var(--rx-blue);text-decoration:none;font-weight:500">
+            Calculate →
+          </a>
+        </div>
+        <div id="bmiSummary">
+          <div style="text-align:center;padding:1.5rem;color:var(--rx-muted)">
+            <div class="spinner spinner-sm" style="margin:0 auto 1rem"></div>
+            <div style="font-size:.875rem">Loading BMI data…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Medication summary / current drugs -->
+      <div class="card">
+        <div class="card-header-row">
+          <span class="card-heading">💊 Current Medications</span>
+          <a href="scan.html" style="font-size:.8125rem;color:var(--rx-blue);text-decoration:none;font-weight:500">
+            Add →
+          </a>
+        </div>
+        <div id="medicationList">
+          <div style="text-align:center;padding:1.5rem;color:var(--rx-muted)">
+            <div class="spinner spinner-sm" style="margin:0 auto 1rem"></div>
+            <div style="font-size:.875rem">Loading medications…</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/dashboard.js"></script>
+<script>
+'use strict';
+
+/* ── Filter prescription list ── */
+let allRxItems = [];
+function filterRx(status, btn) {
+  document.querySelectorAll('.active-chip').forEach(el => {
+    el.classList.remove('active-chip');
+    el.style.background = '';
+    el.style.color = '';
+    el.style.borderColor = '';
+  });
+  btn.classList.add('active-chip');
+  btn.style.background   = 'var(--rx-blue-light)';
+  btn.style.color        = 'var(--rx-blue)';
+  btn.style.borderColor  = 'var(--rx-blue)';
+
+  const list = document.getElementById('rxList');
+  if (!list) return;
+
+  const items = list.querySelectorAll('.rx-item');
+  // Re-load from API with status filter (simple approach: reload)
+  if (status === 'all') {
+    Dashboard.loadPrescriptions(1);
+  } else {
+    // Filter client-side from already loaded State
+    // For a production app this would pass status param to API
+    Dashboard.loadPrescriptions(1);
+  }
+}
+
+/* ── Populate medication list from latest prescription drugs ── */
+document.addEventListener('DOMContentLoaded', () => {
+  // Defer medication list population until prescriptions load
+  setTimeout(populateMedicationList, 2000);
+});
+
+function populateMedicationList() {
+  const container = document.getElementById('medicationList');
+  if (!container) return;
+
+  // Show licence notice for unverified professionals
+  const user = RxGuard.Auth.currentUser();
+  if (user?.role !== 'consumer') {
+    const notice = document.getElementById('licenceNotice');
+    // Only show if professional data loaded — simplified check
+    if (notice && user?.professional_profile && !user.professional_profile.license_verified) {
+      notice.style.display = 'flex';
+    }
+    // Update admin metric labels
+    if (user?.role === 'admin') {
+      const totalLabel = document.getElementById('metricTotalLabel');
+      const alertLabel = document.getElementById('metricAlertLabel');
+      const medLabel   = document.getElementById('metricMedLabel');
+      if (totalLabel) totalLabel.textContent = 'Total Prescriptions';
+      if (alertLabel) alertLabel.textContent = 'Interactions Flagged';
+      if (medLabel)   medLabel.textContent   = 'Total Users';
+    }
+  }
+
+  // Build medication list from state
+  const meds = [];
+  (window.State?.prescriptions || []).forEach(rx => {
+    (rx.drugs || []).forEach(d => {
+      if (!meds.find(m => m.generic_name === d.generic_name)) {
+        meds.push(d);
+      }
+    });
+  });
+
+  if (meds.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:1.5rem;color:var(--rx-muted)">
+        <div style="font-size:1.5rem;margin-bottom:.5rem">💊</div>
+        <div style="font-size:.875rem;margin-bottom:.75rem">No medications tracked yet</div>
+        <a href="scan.html" class="btn btn-primary btn-sm">Scan Prescription</a>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = meds.slice(0, 6).map(med => `
+    <div style="display:flex;align-items:center;gap:.625rem;padding:.5rem 0;border-bottom:1px solid var(--rx-border)">
+      <div style="width:28px;height:28px;border-radius:6px;background:var(--rx-blue-light);
+                  display:flex;align-items:center;justify-content:center;font-size:.875rem;flex-shrink:0">💊</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.875rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          ${med.generic_name || med.drug_name}
+        </div>
+        <div style="font-size:.75rem;color:var(--rx-muted)">${med.strength || ''} ${med.dosage_form || ''}</div>
+      </div>
+      ${med.has_warning
+        ? '<span class="badge badge-warning" style="flex-shrink:0">⚠</span>'
+        : '<span class="badge badge-safe" style="flex-shrink:0">✓</span>'}
+    </div>`).join('');
+
+  if (meds.length > 6) {
+    container.innerHTML += `<p style="font-size:.75rem;color:var(--rx-muted);text-align:center;margin-top:.75rem">
+      +${meds.length - 6} more · <a href="scan.html">view all</a></p>`;
+  }
+}
+
+/* ── Populate activity feed from prescription events ── */
+document.addEventListener('rxguard:dashboardLoaded', () => {
+  const feed = document.getElementById('activityFeed');
+  if (!feed) return;
+
+  const events = [];
+  (window.State?.prescriptions || []).slice(0, 4).forEach(rx => {
+    events.push({
+      icon : '📷',
+      bg   : 'var(--rx-blue-light)',
+      text : `Prescription scanned — ${rx.patient_name || 'Unknown patient'}`,
+      time : rx.created_at,
+    });
+  });
+  (window.State?.bmiRecords || []).slice(0, 2).forEach(r => {
+    events.push({
+      icon : '⚖️',
+      bg   : 'var(--rx-green-light)',
+      text : `BMI recorded — ${r.bmi_value} (${r.category.replace('_',' ')})`,
+      time : r.recorded_at,
+    });
+  });
+
+  events.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+  if (events.length === 0) return;
+
+  feed.innerHTML = events.slice(0, 5).map(ev => `
+    <div class="activity-item">
+      <div class="activity-icon" style="background:${ev.bg}">${ev.icon}</div>
+      <div class="activity-body">
+        <div style="font-size:.875rem">${ev.text}</div>
+        <div class="activity-time">${App.DateFmt.relative(ev.time)}</div>
+      </div>
+    </div>`).join('');
+});
+</script>
+</body>
+</html>
