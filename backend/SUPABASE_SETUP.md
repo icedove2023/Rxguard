@@ -19,7 +19,9 @@ parameters** (or **Connection string → PSQL**). You need:
 
 ```env
 DB_CONNECTION=pgsql
-DB_HOST=db.YOUR-PROJECT-REF.supabase.co
+# If your machine is IPv4-only, use the pooler hostname instead of a direct
+# IPv6-only host, for example: aws-0-eu-central-1.pooler.supabase.com
+DB_HOST=aws-0-eu-central-1.pooler.supabase.com
 DB_PORT=5432
 DB_DATABASE=postgres
 DB_USERNAME=postgres

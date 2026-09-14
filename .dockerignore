@@ -1,0 +1,13 @@
+# Prevent local dev artifacts from being copied into Docker images.
+backend/vendor/
+backend/node_modules/
+backend/bootstrap/cache/
+backend/storage/framework/cache/
+backend/storage/framework/sessions/
+backend/storage/logs/
+backend/.env
+.git/
+.gitignore
+.idea/
+.vscode/
+.DS_Store

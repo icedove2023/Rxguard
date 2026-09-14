@@ -15,6 +15,7 @@ RUN composer install \
     --no-interaction \
     --no-progress \
     --no-autoloader \
+    --no-scripts \
     --ignore-platform-reqs
 
 COPY backend/ .
@@ -22,7 +23,8 @@ COPY backend/ .
 RUN composer dump-autoload \
     --optimize \
     --no-dev \
-    --no-interaction
+    --no-interaction \
+    --no-scripts
 
 # ── Stage 2: Runtime image ───────────────────────────────────
 FROM php:8.3-fpm-alpine AS runtime
@@ -87,8 +89,10 @@ WORKDIR /var/www/html
 # Copy application
 COPY --from=vendor --chown=rxguard:rxguard /app .
 
-# Storage and cache directories
-RUN mkdir -p \
+# Remove any stale Laravel bootstrap cache from local dev builds so
+# dev-only providers (e.g. laravel/pail) are not registered in production.
+RUN rm -rf bootstrap/cache/* && \
+    mkdir -p \
         storage/logs \
         storage/framework/cache \
         storage/framework/sessions \
