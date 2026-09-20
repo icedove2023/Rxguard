@@ -9,27 +9,32 @@
  */
 
 import React from 'react';
-import { StatusBar, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
 
 import { AuthProvider } from '@context/AuthContext';
+import { ThemeProvider } from '@context/ThemeContext';
 import AppNavigation from '@navigation';
+import ErrorBoundary from '@components/ErrorBoundary';
+import OfflineBanner from '@components/OfflineBanner';
+import AppStatusBar from '@components/AppStatusBar';
 import { COLORS } from '@constants';
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={COLORS.SURFACE}
-        translucent={false}
-      />
-      <AuthProvider>
-        <AppNavigation />
-      </AuthProvider>
-      <Toast />
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={styles.root}>
+        <ThemeProvider>
+          <AppStatusBar />
+          <AuthProvider>
+            <OfflineBanner />
+            <AppNavigation />
+          </AuthProvider>
+          <Toast />
+        </ThemeProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 

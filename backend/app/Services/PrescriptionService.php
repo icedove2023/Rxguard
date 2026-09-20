@@ -281,6 +281,16 @@ class PrescriptionService
                 'gender' => $prescription->patient_gender,
             ],
 
+            // The RxGuard account that uploaded this scan — distinct from
+            // `patient` above (the prescription's named patient, which the
+            // uploader isn't always themselves, e.g. a parent scanning for
+            // a child). Only meaningful to admins/professional reviewers.
+            'uploaded_by' => $prescription->user ? [
+                'id'    => $prescription->user->id,
+                'name'  => $prescription->user->name,
+                'email' => $prescription->user->email,
+            ] : null,
+
             'prescriber' => [
                 'name'     => $prescription->prescriber_name,
                 'reg_no'   => $prescription->prescriber_reg_no,
@@ -332,6 +342,19 @@ class PrescriptionService
             'flags' => [
                 'has_interactions' => $prescription->has_interactions,
                 'has_errors'       => $prescription->has_errors,
+            ],
+
+            'review' => [
+                'status'      => $prescription->review_status,
+                'notes'       => $prescription->review_notes,
+                'reviewed_by' => $prescription->reviewer ? [
+                    'id'   => $prescription->reviewer->id,
+                    'name' => $prescription->reviewer->name,
+                    'role' => $prescription->reviewer->role,
+                ] : null,
+                'reviewed_at'  => $prescription->reviewed_at?->toISOString(),
+                'flag_reason'  => $prescription->flag_reason,
+                'flagged_at'   => $prescription->flagged_at?->toISOString(),
             ],
 
             'gemini_meta' => [

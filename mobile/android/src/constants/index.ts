@@ -48,11 +48,13 @@ export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
    Prescription statuses — must match backend enum exactly
 ───────────────────────────────────────────────────────────────── */
 export const RX_STATUS = {
-  PENDING    : 'pending',
-  PROCESSING : 'processing',
-  COMPLETED  : 'completed',
-  FLAGGED    : 'flagged',
-  APPROVED   : 'approved',
+  PENDING          : 'pending',
+  EXTRACTED        : 'extracted',
+  AWAITING_REVIEW  : 'awaiting_review',
+  PROCESSING       : 'processing',
+  COMPLETED        : 'completed',
+  FLAGGED          : 'flagged',
+  APPROVED         : 'approved',
 } as const;
 
 export type RxStatus = typeof RX_STATUS[keyof typeof RX_STATUS];
@@ -113,9 +115,19 @@ export const COLORS = {
   /* Dark mode */
   DARK_BG       : '#0F172A',
   DARK_SURFACE  : '#1E293B',
+  DARK_SURFACE_ALT: '#243348',
   DARK_BORDER   : '#2D3E55',
   DARK_TEXT     : '#E2E8F0',
-  DARK_MUTED    : '#64748B',
+  DARK_TEXT_SECONDARY: '#B6C2D4',
+  DARK_MUTED    : '#8393AC',
+
+  /* Dark-mode accent variants — muted/desaturated so badges and light
+     accent chips (BLUE_LIGHT, RED_LIGHT, etc.) don't look pastel/washed
+     out against a dark background. Used by the theme system below. */
+  DARK_BLUE_LIGHT  : '#16233D',
+  DARK_GREEN_LIGHT : '#123C30',
+  DARK_RED_LIGHT   : '#3D1F1F',
+  DARK_AMBER_LIGHT : '#3D2F0F',
 } as const;
 
 /* ─────────────────────────────────────────────────────────────────

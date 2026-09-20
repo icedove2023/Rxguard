@@ -26,6 +26,7 @@ import { immer } from 'zustand/middleware/immer';
 import { USER_ROLES, type UserRole } from '@constants';
 import { TokenStore, ApiError } from '@services/api';
 import { AuthService, UserService } from '@services';
+import { unlockWithBiometrics, isBiometricLoginEnabled } from '@services/biometrics';
 import type { User, LoginPayload, RegisterPayload } from '@types';
 
 /* ─────────────────────────────────────────────────────────────────
@@ -79,9 +80,17 @@ interface AuthContextValue {
 
   /* Actions */
   login        : (payload: LoginPayload)    => Promise<void>;
-  register     : (payload: RegisterPayload) => Promise<void>;
+  register     : (payload: RegisterPayload) => Promise<{ requiresConfirmation: boolean }>;
   logout       : ()                         => Promise<void>;
   refreshUser  : ()                         => Promise<void>;
+  /** Adopts tokens obtained outside the normal login flow (e.g. a
+   *  Supabase email-confirmation deep link) and loads the user. */
+  hydrateSession: (accessToken: string, refreshToken: string) => Promise<void>;
+  /** True if the device supports it AND the user opted in via Settings. */
+  biometricLoginAvailable: boolean;
+  /** Triggers the OS biometric prompt and logs in on success. Returns
+   *  false (never throws) if unavailable, cancelled, or failed. */
+  loginWithBiometrics: () => Promise<boolean>;
   clearError   : ()                         => void;
 
   /* Role helpers */
@@ -197,11 +206,21 @@ export function AuthProvider({ children, onSessionExpired }: AuthProviderProps) 
     _setLoading(true);
     _setError(null);
     try {
-      const res  = await AuthService.register(payload);
-      const { access_token, refresh_token, user: userData } = res.data;
+      const res = await AuthService.register(payload);
+      const { access_token, refresh_token, user: userData, requires_confirmation } = res.data;
+
+      // Supabase's default project setting requires email confirmation
+      // before a session is issued — in that case there's nothing to log
+      // in with yet, so leave auth state untouched and let the caller
+      // show a "check your email" screen instead.
+      if (!access_token || !refresh_token) {
+        return { requiresConfirmation: Boolean(requires_confirmation) };
+      }
+
       TokenStore.setTokens(access_token, refresh_token);
       TokenStore.setUser(userData);
       _setUser(userData);
+      return { requiresConfirmation: false };
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Registration failed.';
       _setError(msg);
@@ -234,6 +253,45 @@ export function AuthProvider({ children, onSessionExpired }: AuthProviderProps) 
     }
   }, [_setUser]);
 
+  const hydrateSession = useCallback(async (accessToken: string, refreshToken: string) => {
+    _setLoading(true);
+    try {
+      TokenStore.setTokens(accessToken, refreshToken);
+      const res = await UserService.profile();
+      _setUser(res.data);
+      TokenStore.setUser(res.data);
+    } catch (err) {
+      TokenStore.clearTokens();
+      _setError(err instanceof ApiError ? err.message : 'Could not restore your session. Please log in.');
+      throw err;
+    } finally {
+      _setLoading(false);
+    }
+  }, [_setLoading, _setError, _setUser]);
+
+  const loginWithBiometrics = useCallback(async (): Promise<boolean> => {
+    const storedRefreshToken = await unlockWithBiometrics();
+    if (!storedRefreshToken) return false;
+
+    _setLoading(true);
+    try {
+      const res = await AuthService.refreshToken(storedRefreshToken);
+      // AuthService.refreshToken doesn't return the user, unlike login —
+      // fetch it once we have a fresh access token.
+      TokenStore.setTokens(res.data.access_token, res.data.refresh_token ?? storedRefreshToken);
+      const profileRes = await UserService.profile();
+      _setUser(profileRes.data);
+      TokenStore.setUser(profileRes.data);
+      return true;
+    } catch {
+      // Stored refresh token expired/revoked (e.g. password changed
+      // elsewhere) — fall back to normal password login.
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }, [_setLoading, _setUser]);
+
   const clearError = useCallback(() => _setError(null), [_setError]);
 
   /* ── Role helpers ── */
@@ -251,6 +309,9 @@ export function AuthProvider({ children, onSessionExpired }: AuthProviderProps) 
     register,
     logout,
     refreshUser,
+    hydrateSession,
+    biometricLoginAvailable: isBiometricLoginEnabled(),
+    loginWithBiometrics,
     clearError,
 
     isAdmin       : role === USER_ROLES.ADMIN,

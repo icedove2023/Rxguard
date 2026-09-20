@@ -257,8 +257,16 @@ class AdminController extends Controller
         }
 
         // Fallback: Use audit logs to track API usage
-        // Track API calls to external services from audit logs
-        $apiActions = ['prescription.analyze', 'drug.search', 'drug.interaction', 'chatbot.message'];
+        // Track calls that hit external services (EMDEX/OpenFDA/Gemini/Tesseract)
+        // via their real AuditLog action names (see AuditMiddleware + explicit
+        // AuditLog::record() calls in each controller).
+        $apiActions = [
+            'prescription.extracted',   // Tesseract OCR
+            'prescription.suggested',   // Gemini suggestion
+            'prescription.confirmed',   // EMDEX + OpenFDA validation
+            'drug.interaction.check',   // EMDEX + OpenFDA
+            'chat.message',             // Gemini chatbot
+        ];
         
         $externalApiCalls = AuditLog::whereIn('action', $apiActions)
             ->whereBetween('created_at', [$fromDate, $toDate . ' 23:59:59'])

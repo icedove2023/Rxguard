@@ -22,19 +22,32 @@ class SupabaseAuthService
     private string $serviceRoleKey;
     private ?string $jwtSecret;
     private ?string $redirectTo;
+    private ?string $mobileRedirectTo;
 
     public function __construct()
     {
-        $this->url            = rtrim((string) config('services.supabase.url'), '/');
-        $this->anonKey        = (string) config('services.supabase.anon_key');
-        $this->serviceRoleKey = (string) config('services.supabase.service_role_key');
-        $this->jwtSecret      = config('services.supabase.jwt_secret') ?: null;
-        $this->redirectTo     = config('services.supabase.redirect_to') ?: null;
+        $this->url             = rtrim((string) config('services.supabase.url'), '/');
+        $this->anonKey         = (string) config('services.supabase.anon_key');
+        $this->serviceRoleKey  = (string) config('services.supabase.service_role_key');
+        $this->jwtSecret       = config('services.supabase.jwt_secret') ?: null;
+        $this->redirectTo      = config('services.supabase.redirect_to') ?: null;
+        $this->mobileRedirectTo = config('services.supabase.mobile_redirect_to') ?: null;
     }
 
     public function isConfigured(): bool
     {
         return $this->url !== '' && $this->anonKey !== '';
+    }
+
+    /**
+     * Resolves which pre-configured redirect URL to hand Supabase.
+     * Deliberately NOT a free-form URL accepted from the client — that
+     * would be an open-redirect vulnerability in an auth flow. Callers
+     * only ever choose between the server's own known-good URLs.
+     */
+    private function resolveRedirect(string $client = 'web'): ?string
+    {
+        return $client === 'mobile' ? $this->mobileRedirectTo : $this->redirectTo;
     }
 
     // ----------------------------------------------------------------
@@ -48,13 +61,15 @@ class SupabaseAuthService
      *
      * @throws SupabaseAuthException
      */
-    public function signUp(string $email, string $password, array $metadata = []): array
+    public function signUp(string $email, string $password, array $metadata = [], string $client = 'web'): array
     {
+        $redirect = $this->resolveRedirect($client);
+
         $response = $this->client()->post("{$this->url}/auth/v1/signup", array_filter([
             'email'    => $email,
             'password' => $password,
             'data'     => $metadata,
-            'options'  => $this->redirectTo ? ['email_redirect_to' => $this->redirectTo] : null,
+            'options'  => $redirect ? ['email_redirect_to' => $redirect] : null,
         ]));
 
         return $this->handle($response, 'Sign up');
@@ -112,12 +127,12 @@ class SupabaseAuthService
      * treat it as fire-and-forget from the controller's perspective to
      * avoid leaking whether an email exists.
      */
-    public function sendPasswordResetEmail(string $email): void
+    public function sendPasswordResetEmail(string $email, string $client = 'web'): void
     {
         try {
             $this->client()->post("{$this->url}/auth/v1/recover", array_filter([
                 'email'   => $email,
-                'options' => $this->redirectTo ? ['redirect_to' => $this->redirectTo] : null,
+                'options' => ($redirect = $this->resolveRedirect($client)) ? ['redirect_to' => $redirect] : null,
             ]));
         } catch (\Throwable $e) {
             Log::warning('Supabase password reset email failed', ['error' => $e->getMessage()]);
@@ -143,13 +158,13 @@ class SupabaseAuthService
     /**
      * Resend the signup confirmation email.
      */
-    public function resendConfirmation(string $email): void
+    public function resendConfirmation(string $email, string $client = 'web'): void
     {
         try {
             $this->client()->post("{$this->url}/auth/v1/resend", array_filter([
                 'type'    => 'signup',
                 'email'   => $email,
-                'options' => $this->redirectTo ? ['email_redirect_to' => $this->redirectTo] : null,
+                'options' => ($redirect = $this->resolveRedirect($client)) ? ['email_redirect_to' => $redirect] : null,
             ]));
         } catch (\Throwable $e) {
             Log::warning('Supabase resend confirmation failed', ['error' => $e->getMessage()]);

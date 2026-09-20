@@ -94,6 +94,9 @@ return [
         'service_role_key' => env('SUPABASE_SERVICE_ROLE_KEY'),
         'jwt_secret'       => env('SUPABASE_JWT_SECRET'),
         'redirect_to'      => env('SUPABASE_AUTH_REDIRECT_URL'),
+        // Deep link back into the mobile app after an email confirmation
+        // or password-recovery link is tapped — see mobile/android/android/README.md.
+        'mobile_redirect_to' => env('SUPABASE_MOBILE_REDIRECT_URL', 'rxguard://auth-callback'),
     ],
 
     /*

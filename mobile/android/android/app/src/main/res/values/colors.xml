@@ -1,0 +1,4 @@
+<resources>
+    <!-- Matches COLORS.BACKGROUND in src/constants/index.ts -->
+    <color name="rxguard_bg">#F4F7FB</color>
+</resources>

@@ -58,6 +58,9 @@ class AuthController extends Controller
             'license_number' => ['required_if:role,pharmacist,physician', 'string', 'max:60'],
             'institution'    => ['required_if:role,pharmacist,physician', 'string', 'max:255'],
             'specialty'      => ['nullable', 'string', 'max:120'],
+            // Which pre-configured redirect URL Supabase should use for the
+            // confirmation email link — never a free-form URL from the client.
+            'client'         => ['nullable', 'in:web,mobile'],
         ]);
 
         if ($validator->fails()) {
@@ -76,7 +79,7 @@ class AuthController extends Controller
             $signUp = $this->supabase->signUp($request->email, $request->password, [
                 'name' => $request->name,
                 'role' => $request->role,
-            ]);
+            ], $request->input('client', 'web'));
         } catch (SupabaseAuthException $e) {
             return response()->json([
                 'status'  => 'error',
@@ -364,7 +367,8 @@ class AuthController extends Controller
     public function forgotPassword(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'email' => ['required', 'email'],
+            'email'  => ['required', 'email'],
+            'client' => ['nullable', 'in:web,mobile'],
         ]);
 
         if ($validator->fails()) {
@@ -373,7 +377,7 @@ class AuthController extends Controller
 
         // Supabase sends the recovery email (via Resend). Fire-and-forget
         // regardless of outcome to avoid leaking whether the email exists.
-        $this->supabase->sendPasswordResetEmail($request->email);
+        $this->supabase->sendPasswordResetEmail($request->email, $request->input('client', 'web'));
 
         AuditLog::record('user.password.forgot', null, 'User', null, [
             'email' => $request->email,
@@ -391,14 +395,15 @@ class AuthController extends Controller
     public function resendConfirmation(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'email' => ['required', 'email'],
+            'email'  => ['required', 'email'],
+            'client' => ['nullable', 'in:web,mobile'],
         ]);
 
         if ($validator->fails()) {
             return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
         }
 
-        $this->supabase->resendConfirmation($request->email);
+        $this->supabase->resendConfirmation($request->email, $request->input('client', 'web'));
 
         AuditLog::record('user.email.resend', null, 'User', null, [
             'email' => $request->email,

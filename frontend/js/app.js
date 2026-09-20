@@ -380,6 +380,13 @@ function injectSidebar(activeItem = 'overview') {
              </a>`;
   });
 
+  if (isPro) {
+    html += `<div class="sidebar-section-label">Clinical Review</div>
+             <a href="review-queue.html" class="sidebar-item ${activeItem === 'review-queue' ? 'active' : ''}">
+               <span class="sidebar-icon">🩺</span>Review Queue
+             </a>`;
+  }
+
   if (isAdmin) {
     html += `<div class="sidebar-section-label">Administration</div>
              <a href="admin.html" class="sidebar-item ${activeItem === 'admin' ? 'active' : ''}">

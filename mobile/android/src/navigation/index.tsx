@@ -31,32 +31,56 @@
  */
 
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useAuth } from '@context/AuthContext';
-import { COLORS, SCREENS, FONT_SIZE, SPACING } from '@constants';
+import { useTheme } from '@context/ThemeContext';
+import { SCREENS, FONT_SIZE, SPACING } from '@constants';
 import type {
   AuthStackParamList,
   MainTabParamList,
   RootStackParamList,
 } from '@types';
 
-/* ─────────────────────────────────────────────────────────────────
-   Placeholder screen component
-   Remove once real screens are added.
-───────────────────────────────────────────────────────────────── */
+/* Auth screens */
+import SplashScreen         from '@screens/auth/SplashScreen';
+import LoginScreen          from '@screens/auth/LoginScreen';
+import RegisterScreen       from '@screens/auth/RegisterScreen';
+import ForgotPasswordScreen from '@screens/auth/ForgotPasswordScreen';
+import ResetPasswordScreen  from '@screens/auth/ResetPasswordScreen';
 
-const PlaceholderScreen = ({ route }: { route: { name: string } }) => {
-  const { View: V, Text } = require('react-native');
-  return (
-    <V style={styles.placeholder}>
-      <Text style={styles.placeholderText}>{route.name}</Text>
-    </V>
-  );
+/* Main tab screens */
+import DashboardScreen from '@screens/main/DashboardScreen';
+import ScanScreen      from '@screens/main/ScanScreen';
+import CheckerScreen   from '@screens/main/CheckerScreen';
+import ChatbotScreen   from '@screens/main/ChatbotScreen';
+import BMIScreen       from '@screens/main/BMIScreen';
+
+/* Stack screens within Main */
+import PrescriptionReportScreen from '@screens/prescriptions/PrescriptionReportScreen';
+import CheckerResultScreen      from '@screens/prescriptions/CheckerResultScreen';
+import ChatSessionScreen        from '@screens/prescriptions/ChatSessionScreen';
+import BMIHistoryScreen         from '@screens/prescriptions/BMIHistoryScreen';
+import ProfileScreen            from '@screens/profile/ProfileScreen';
+import SettingsScreen           from '@screens/profile/SettingsScreen';
+import NotificationsScreen      from '@screens/profile/NotificationsScreen';
+
+import { navigationRef } from './navigationRef';
+import DeepLinkHandler from './DeepLinkHandler';
+
+/* ─────────────────────────────────────────────────────────────────
+   Deep linking
+   Only registers the scheme so Android/RN route rxguard:// URLs to
+   this app. The actual auth-callback routing is handled manually by
+   DeepLinkHandler (Supabase's session lives in a URL *fragment*,
+   which React Navigation's own path-based linking config can't read).
+───────────────────────────────────────────────────────────────── */
+const LINKING_CONFIG = {
+  prefixes: ['rxguard://'],
 };
 
 /* ─────────────────────────────────────────────────────────────────
@@ -87,8 +111,7 @@ function TabIcon({
   name : string;
   focused: boolean;
 }) {
-  const { Text } = require('react-native');
-  const icons    = TAB_ICONS[name] ?? { active: '●', inactive: '○' };
+  const icons = TAB_ICONS[name] ?? { active: '●', inactive: '○' };
   return (
     <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.55 }}>
       {focused ? icons.active : icons.inactive}
@@ -108,17 +131,17 @@ function AuthNavigator() {
         animation  : 'slide_from_right',
       }}
     >
-      <AuthStack.Screen name={SCREENS.SPLASH as 'Splash'}   component={PlaceholderScreen} />
-      <AuthStack.Screen name={SCREENS.LOGIN as 'Login'}     component={PlaceholderScreen} />
-      <AuthStack.Screen name={SCREENS.REGISTER as 'Register'} component={PlaceholderScreen} />
+      <AuthStack.Screen name={SCREENS.SPLASH as 'Splash'}   component={SplashScreen} />
+      <AuthStack.Screen name={SCREENS.LOGIN as 'Login'}     component={LoginScreen} />
+      <AuthStack.Screen name={SCREENS.REGISTER as 'Register'} component={RegisterScreen} />
       <AuthStack.Screen
         name={SCREENS.FORGOT_PW as 'ForgotPassword'}
-        component={PlaceholderScreen}
+        component={ForgotPasswordScreen}
         options={{ headerShown: true, title: 'Forgot Password', headerBackTitle: 'Back' }}
       />
       <AuthStack.Screen
         name={SCREENS.RESET_PW as 'ResetPassword'}
-        component={PlaceholderScreen}
+        component={ResetPasswordScreen}
         options={{ headerShown: true, title: 'Reset Password', headerBackTitle: 'Back' }}
       />
     </AuthStack.Navigator>
@@ -130,15 +153,17 @@ function AuthNavigator() {
 ───────────────────────────────────────────────────────────────── */
 
 function MainTabs() {
+  const { colors } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon    : ({ focused }) => <TabIcon name={route.name} focused={focused} />,
-        tabBarActiveTintColor  : COLORS.BLUE,
-        tabBarInactiveTintColor: COLORS.MUTED,
+        tabBarActiveTintColor  : colors.blue,
+        tabBarInactiveTintColor: colors.muted,
         tabBarStyle   : {
-          backgroundColor  : COLORS.SURFACE,
-          borderTopColor   : COLORS.BORDER,
+          backgroundColor  : colors.surface,
+          borderTopColor   : colors.border,
           borderTopWidth   : 1,
           paddingBottom    : SPACING.SM,
           paddingTop       : SPACING.XS,
@@ -152,11 +177,11 @@ function MainTabs() {
         headerShown: false,
       })}
     >
-      <Tab.Screen name={SCREENS.DASHBOARD as 'Dashboard'} component={PlaceholderScreen} options={{ title: 'Dashboard'  }} />
-      <Tab.Screen name={SCREENS.SCAN      as 'Scan'}      component={PlaceholderScreen} options={{ title: 'Scan Rx'    }} />
-      <Tab.Screen name={SCREENS.CHECKER   as 'Checker'}   component={PlaceholderScreen} options={{ title: 'Drug Check' }} />
-      <Tab.Screen name={SCREENS.CHATBOT   as 'Chatbot'}   component={PlaceholderScreen} options={{ title: 'AI Chat'    }} />
-      <Tab.Screen name={SCREENS.BMI       as 'BMI'}       component={PlaceholderScreen} options={{ title: 'BMI'        }} />
+      <Tab.Screen name={SCREENS.DASHBOARD as 'Dashboard'} component={DashboardScreen} options={{ title: 'Dashboard'  }} />
+      <Tab.Screen name={SCREENS.SCAN      as 'Scan'}      component={ScanScreen}      options={{ title: 'Scan Rx'    }} />
+      <Tab.Screen name={SCREENS.CHECKER   as 'Checker'}   component={CheckerScreen}   options={{ title: 'Drug Check' }} />
+      <Tab.Screen name={SCREENS.CHATBOT   as 'Chatbot'}   component={ChatbotScreen}   options={{ title: 'AI Chat'    }} />
+      <Tab.Screen name={SCREENS.BMI       as 'BMI'}       component={BMIScreen}       options={{ title: 'BMI'        }} />
     </Tab.Navigator>
   );
 }
@@ -165,14 +190,19 @@ function MainTabs() {
    Main stack  (wraps tabs + modal-style screens)
 ───────────────────────────────────────────────────────────────── */
 
-const MAIN_HEADER = {
-  headerStyle     : { backgroundColor: COLORS.SURFACE },
-  headerTintColor : COLORS.BLUE,
-  headerTitleStyle: { fontSize: FONT_SIZE.LG, fontWeight: '600' as const },
-  headerBackTitle : 'Back',
-};
+function getMainHeader(colors: ReturnType<typeof useTheme>['colors']) {
+  return {
+    headerStyle     : { backgroundColor: colors.surface },
+    headerTintColor : colors.blue,
+    headerTitleStyle: { fontSize: FONT_SIZE.LG, fontWeight: '600' as const, color: colors.text },
+    headerBackTitle : 'Back',
+  };
+}
 
 function MainNavigator() {
+  const { colors } = useTheme();
+  const MAIN_HEADER = getMainHeader(colors);
+
   return (
     <MainStack.Navigator screenOptions={{ headerShown: false }}>
       <MainStack.Screen
@@ -181,42 +211,42 @@ function MainNavigator() {
       />
       <MainStack.Screen
         name={SCREENS.SCAN_RESULT as any}
-        component={PlaceholderScreen}
+        component={PrescriptionReportScreen}
         options={{ ...MAIN_HEADER, headerShown: true, title: 'Scan Report' }}
       />
       <MainStack.Screen
         name={SCREENS.PRESCRIPTION_DETAIL as any}
-        component={PlaceholderScreen}
+        component={PrescriptionReportScreen}
         options={{ ...MAIN_HEADER, headerShown: true, title: 'Prescription' }}
       />
       <MainStack.Screen
         name={SCREENS.CHECKER_RESULT as any}
-        component={PlaceholderScreen}
+        component={CheckerResultScreen}
         options={{ ...MAIN_HEADER, headerShown: true, title: 'Interaction Report' }}
       />
       <MainStack.Screen
         name={SCREENS.CHAT_SESSION as any}
-        component={PlaceholderScreen}
-        options={{ headerShown: false }}
+        component={ChatSessionScreen}
+        options={{ ...MAIN_HEADER, headerShown: true, title: 'Conversation' }}
       />
       <MainStack.Screen
         name={SCREENS.BMI_HISTORY as any}
-        component={PlaceholderScreen}
+        component={BMIHistoryScreen}
         options={{ ...MAIN_HEADER, headerShown: true, title: 'BMI History' }}
       />
       <MainStack.Screen
         name={SCREENS.PROFILE as any}
-        component={PlaceholderScreen}
+        component={ProfileScreen}
         options={{ ...MAIN_HEADER, headerShown: true, title: 'My Profile' }}
       />
       <MainStack.Screen
         name={SCREENS.SETTINGS as any}
-        component={PlaceholderScreen}
+        component={SettingsScreen}
         options={{ ...MAIN_HEADER, headerShown: true, title: 'Settings' }}
       />
       <MainStack.Screen
         name={SCREENS.NOTIFICATIONS as any}
-        component={PlaceholderScreen}
+        component={NotificationsScreen}
         options={{ ...MAIN_HEADER, headerShown: true, title: 'Notifications' }}
       />
     </MainStack.Navigator>
@@ -229,26 +259,29 @@ function MainNavigator() {
 
 function RootNavigator() {
   const { isAuthenticated, isInitialised } = useAuth();
+  const { colors } = useTheme();
 
   if (!isInitialised) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={COLORS.BLUE} />
+      <View style={[styles.loading, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.blue} />
       </View>
     );
   }
 
   return (
-    <RootStack.Navigator screenOptions={{ headerShown: false }}>
-      {isAuthenticated ? (
-        <RootStack.Screen name={'Main' as any} component={MainNavigator} />
-      ) : (
-        <RootStack.Screen name={'Auth' as any} component={AuthNavigator} />
-      )}
-    </RootStack.Navigator>
+    <>
+      <DeepLinkHandler />
+      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        {isAuthenticated ? (
+          <RootStack.Screen name={'Main' as any} component={MainNavigator} />
+        ) : (
+          <RootStack.Screen name={'Auth' as any} component={AuthNavigator} />
+        )}
+      </RootStack.Navigator>
+    </>
   );
 }
-
 /* ─────────────────────────────────────────────────────────────────
    App navigation root  (exported and used in App.tsx)
 ───────────────────────────────────────────────────────────────── */
@@ -256,7 +289,7 @@ function RootNavigator() {
 export default function AppNavigation() {
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef} linking={LINKING_CONFIG}>
         <RootNavigator />
       </NavigationContainer>
     </SafeAreaProvider>
@@ -272,17 +305,5 @@ const styles = StyleSheet.create({
     flex           : 1,
     alignItems     : 'center',
     justifyContent : 'center',
-    backgroundColor: COLORS.BACKGROUND,
-  },
-  placeholder: {
-    flex           : 1,
-    alignItems     : 'center',
-    justifyContent : 'center',
-    backgroundColor: COLORS.BACKGROUND,
-  },
-  placeholderText: {
-    fontSize  : FONT_SIZE.XL,
-    fontWeight: '600',
-    color     : COLORS.MUTED,
   },
 });

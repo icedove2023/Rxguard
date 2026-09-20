@@ -42,6 +42,17 @@ export interface AuthTokens {
   expires_in    : number;
 }
 
+/** Register can return live tokens (email confirmation disabled) OR
+ *  ask the user to confirm their email first (the normal Supabase flow). */
+export interface RegisterResult {
+  user                  : User;
+  access_token?         : string;
+  refresh_token?        : string;
+  token_type?           : string;
+  expires_in?           : number;
+  requires_confirmation?: boolean;
+}
+
 export interface LoginPayload {
   email    : string;
   password : string;
@@ -156,6 +167,21 @@ export interface PrescriptionFlags {
   has_errors      : boolean;
 }
 
+export interface ReviewInfo {
+  status      : string | null;
+  notes       : string | null;
+  reviewed_by : { id: number; name: string; role: string } | null;
+  reviewed_at : string | null;
+  flag_reason : string | null;
+  flagged_at  : string | null;
+}
+
+export interface UploadedBy {
+  id    : number;
+  name  : string;
+  email : string;
+}
+
 export interface GeminiMeta {
   model      : string | null;
   request_id : string | null;
@@ -169,17 +195,45 @@ export interface Prescription {
   safety_label        : string;
   safety_color        : string;
   ocr_confidence      : number | null;
+  ocr_engine          : string | null;
+  raw_ocr_text        : string | null;
+  suggested_text      : string | null;
+  suggested_fields    : Record<string, unknown> | null;
+  approved_text       : string | null;
+  edit_source         : 'manual' | 'gemini' | 'hybrid' | null;
   file_type           : 'jpg' | 'png' | 'pdf';
   scan_url            : string;
   patient             : PatientInfo;
+  uploaded_by         : UploadedBy | null;
   prescriber          : PrescriberInfo;
   prescription_date   : string | null;
   drugs               : PrescriptionDrug[];
   interactions        : DrugInteraction[];
   flags               : PrescriptionFlags;
+  review              : ReviewInfo;
   gemini_meta         : GeminiMeta;
   created_at          : string;
   updated_at          : string;
+}
+
+/** Response from POST /prescriptions/{id}/extract (Tesseract OCR) */
+export interface OcrExtractResult {
+  prescription_id : number;
+  status          : RxStatus;
+  raw_text        : string;
+  ocr_engine      : string;
+  ocr_confidence  : number;
+  pages           : number;
+}
+
+/** Response from POST /prescriptions/{id}/suggest (Gemini suggestion) */
+export interface SuggestionResult {
+  prescription_id : number;
+  status          : RxStatus;
+  raw_text        : string;
+  suggested_text  : string;
+  suggested_fields: Record<string, unknown>;
+  notes           : string[];
 }
 
 export interface PrescriptionListItem {
@@ -333,7 +387,10 @@ export type AuthStackParamList = {
   Login          : { redirect?: string };
   Register       : undefined;
   ForgotPassword : undefined;
-  ResetPassword  : { token: string; email: string };
+  // Supabase delivers the recovery session via a deep-link URL fragment,
+  // captured by the linking config and passed through as accessToken —
+  // there's no separate emailed "token" + "email" pair to key off of.
+  ResetPassword  : { accessToken: string };
 };
 
 export type MainTabParamList = {

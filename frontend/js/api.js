@@ -323,6 +323,16 @@ const User = {
 };
 
 // -----------------------------------------------------------------------
+// Professional review queue API (pharmacist & physician)
+// -----------------------------------------------------------------------
+const ProfessionalReview = {
+  queue   : (params = {}) => get('/professional/prescriptions/queue', params),
+  approve : (id, notes)   => post(`/professional/prescriptions/${id}/approve`, { notes }),
+  flag    : (id, flagReason, severity) =>
+    post(`/professional/prescriptions/${id}/flag`, { flag_reason: flagReason, severity }),
+};
+
+// -----------------------------------------------------------------------
 // Admin API
 // -----------------------------------------------------------------------
 const Admin = {
@@ -333,6 +343,7 @@ const Admin = {
   verifyProfessional  : (id, approved, note) => post(`/admin/professionals/${id}/verify`, { approved, note }),
   analytics           : ()                  => get('/admin/analytics'),
   auditLogs           : (params = {})       => get('/admin/audit-logs', params),
+  apiUsage            : ()                  => get('/admin/api-usage'),
 };
 
 // -----------------------------------------------------------------------
@@ -416,6 +427,7 @@ window.RxGuard = {
   Bmi,
   User,
   Admin,
+  ProfessionalReview,
   Toast,
   TokenStore,
   requireAuth,

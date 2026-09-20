@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Review Queue — RxGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/components.css"/>
+  <style>
+    body { display:flex; flex-direction:column; min-height:100vh; background:var(--rx-bg); }
+    .page-wrap { display:flex; flex:1; min-height:0; }
+    .queue-main { flex:1; overflow-y:auto; padding:var(--space-8); display:flex; flex-direction:column; gap:var(--space-5); }
+
+    .queue-title { font-size:1.5rem; font-weight:700; margin-bottom:.25rem; }
+    .queue-subtitle { font-size:.875rem; color:var(--rx-muted); }
+
+    .queue-card {
+      display:flex; flex-direction:column; gap:.6rem;
+      padding:var(--space-5); background:var(--rx-surface);
+      border:1px solid var(--rx-border); border-radius:var(--radius-lg);
+    }
+    .queue-card.is-flagged { border-left:4px solid var(--rx-red); }
+    .queue-card-head { display:flex; justify-content:space-between; align-items:flex-start; gap:.75rem; flex-wrap:wrap; }
+    .queue-meta { font-size:.75rem; color:var(--rx-muted); }
+    .queue-drugs { display:flex; flex-wrap:wrap; gap:.35rem; }
+    .queue-actions { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.35rem; }
+
+    .empty-state { text-align:center; padding:3rem 1rem; color:var(--rx-muted); }
+    .empty-state .emoji { font-size:2rem; margin-bottom:.5rem; }
+
+    @media (max-width: 900px) { .queue-main { padding:var(--space-4); } }
+  </style>
+</head>
+<body>
+
+<div id="navbarMount"></div>
+
+<div class="page-wrap">
+  <div id="sidebarMount"></div>
+
+  <main class="queue-main">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem">
+      <div>
+        <h1 class="queue-title">🩺 Review Queue</h1>
+        <p class="queue-subtitle">Prescriptions awaiting pharmacist/physician sign-off. Flagged items appear first.</p>
+      </div>
+      <div id="queueCount" class="badge badge-info" style="font-size:.8125rem"></div>
+    </div>
+
+    <div id="queueList"></div>
+    <div id="queueEmpty" class="empty-state" style="display:none">
+      <div class="emoji">✅</div>
+      <div>Nothing waiting for review right now.</div>
+    </div>
+    <div class="pager" id="queuePager" style="display:flex;justify-content:flex-end"></div>
+  </main>
+</div>
+
+<!-- Detail modal -->
+<div class="modal-backdrop" id="detailModal">
+  <div class="modal" style="max-width:640px;max-height:85vh;overflow-y:auto">
+    <div class="modal-header">
+      <h2 class="modal-title">Prescription Detail</h2>
+      <button class="modal-close" data-modal-close="detailModal">×</button>
+    </div>
+    <div id="detailModalBody"></div>
+  </div>
+</div>
+
+<!-- Flag modal -->
+<div class="modal-backdrop" id="flagModal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <h2 class="modal-title">Flag Prescription</h2>
+      <button class="modal-close" data-modal-close="flagModal">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="flagSeverity">Severity</label>
+      <select class="form-control" id="flagSeverity">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+        <option value="critical">Critical</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="flagReasonInput">Reason</label>
+      <textarea class="form-control" id="flagReasonInput" rows="4"
+                placeholder="Describe the concern (e.g. dosage looks incorrect for patient's age, illegible prescriber signature, suspected forgery)…"></textarea>
+    </div>
+    <div id="flagError" class="alert alert-danger" style="display:none;margin-bottom:1rem">
+      <span>⛔</span><span id="flagErrorMsg"></span>
+    </div>
+    <div style="display:flex;gap:.75rem;justify-content:flex-end">
+      <button class="btn btn-outline" data-modal-close="flagModal">Cancel</button>
+      <button class="btn btn-danger" id="flagSubmitBtn">🚩 Flag Prescription</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/review-queue.js"></script>
+</body>
+</html>

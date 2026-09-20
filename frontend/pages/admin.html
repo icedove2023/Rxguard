@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel — RxGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="stylesheet" href="../css/components.css"/>
+  <style>
+    body { display:flex; flex-direction:column; min-height:100vh; background:var(--rx-bg); }
+    .page-wrap { display:flex; flex:1; min-height:0; }
+    .admin-main { flex:1; overflow-y:auto; padding:var(--space-8); display:flex; flex-direction:column; gap:var(--space-6); }
+
+    .admin-title { font-size:1.5rem; font-weight:700; margin-bottom:.25rem; }
+    .admin-subtitle { font-size:.875rem; color:var(--rx-muted); }
+
+    .admin-tabs { display:flex; gap:.25rem; border-bottom:1px solid var(--rx-border); flex-wrap:wrap; }
+    .admin-tab {
+      padding:.7rem 1.1rem; font-size:.8125rem; font-weight:600; color:var(--rx-muted);
+      border-bottom:2px solid transparent; cursor:pointer; background:none; border-top:none; border-left:none; border-right:none;
+    }
+    .admin-tab.active { color:var(--rx-blue); border-bottom-color:var(--rx-blue); }
+    .admin-panel { display:none; }
+    .admin-panel.active { display:block; }
+
+    .rx-table { width:100%; border-collapse:collapse; font-size:.8125rem; }
+    .rx-table th {
+      text-align:left; padding:.6rem .75rem; color:var(--rx-muted); font-weight:600;
+      font-size:.7rem; text-transform:uppercase; letter-spacing:.03em; border-bottom:1px solid var(--rx-border);
+    }
+    .rx-table td { padding:.65rem .75rem; border-bottom:1px solid var(--rx-border); vertical-align:middle; }
+    .rx-table tr:last-child td { border-bottom:none; }
+    .rx-table tr:hover td { background:var(--rx-surface-alt); }
+
+    .toolbar { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-bottom:var(--space-4); }
+    .toolbar .form-control { max-width:220px; }
+
+    .stat-mini { display:flex; flex-direction:column; gap:.15rem; padding:var(--space-4);
+                 background:var(--rx-surface); border:1px solid var(--rx-border); border-radius:var(--radius-lg); }
+    .stat-mini-value { font-size:1.375rem; font-weight:700; }
+    .stat-mini-label { font-size:.75rem; color:var(--rx-muted); }
+    .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:var(--space-3); }
+
+    .pager { display:flex; gap:.5rem; align-items:center; justify-content:flex-end; margin-top:var(--space-4); font-size:.8125rem; }
+    .pager button { padding:.35rem .75rem; }
+
+    .empty-state { text-align:center; padding:2rem 0; color:var(--rx-muted); font-size:.875rem; }
+
+    @media (max-width: 900px) {
+      .admin-main { padding:var(--space-4); }
+      .rx-table { display:block; overflow-x:auto; white-space:nowrap; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="navbarMount"></div>
+
+<div class="page-wrap">
+  <div id="sidebarMount"></div>
+
+  <main class="admin-main">
+    <div>
+      <h1 class="admin-title">🛡️ Admin Panel</h1>
+      <p class="admin-subtitle">Manage users, verify professional licences, and monitor platform health.</p>
+    </div>
+
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-tab="overview">Overview</button>
+      <button class="admin-tab" data-tab="users">Users</button>
+      <button class="admin-tab" data-tab="verification">Professional Verification <span id="pendingBadge"></span></button>
+      <button class="admin-tab" data-tab="audit">Audit Logs</button>
+      <button class="admin-tab" data-tab="api-usage">API Usage</button>
+    </div>
+
+    <!-- ── Overview ── -->
+    <section class="admin-panel active" id="panel-overview">
+      <div class="stat-grid" id="overviewStats"></div>
+
+      <div class="card" style="margin-top:var(--space-5)">
+        <div class="report-section-title">Interactions by Severity</div>
+        <div id="severityBreakdown" class="stat-grid" style="margin-top:var(--space-3)"></div>
+      </div>
+    </section>
+
+    <!-- ── Users ── -->
+    <section class="admin-panel" id="panel-users">
+      <div class="card">
+        <div class="toolbar">
+          <input class="form-control" id="userSearch" placeholder="Search name or email…"/>
+          <select class="form-control" id="userRoleFilter">
+            <option value="">All roles</option>
+            <option value="consumer">Consumer</option>
+            <option value="pharmacist">Pharmacist</option>
+            <option value="physician">Physician</option>
+            <option value="admin">Admin</option>
+          </select>
+          <select class="form-control" id="userStatusFilter">
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Deactivated</option>
+          </select>
+          <button class="btn btn-outline btn-sm" id="userFilterBtn">Filter</button>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="rx-table">
+            <thead>
+              <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+        <div id="usersEmpty" class="empty-state" style="display:none">No users match this filter.</div>
+        <div class="pager" id="usersPager"></div>
+      </div>
+    </section>
+
+    <!-- ── Professional Verification ── -->
+    <section class="admin-panel" id="panel-verification">
+      <div class="card">
+        <div class="report-section-title">Pending Professional Licences</div>
+        <div id="verificationList" style="margin-top:var(--space-3)"></div>
+        <div id="verificationEmpty" class="empty-state" style="display:none">
+          🎉 No pending verifications — all caught up.
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Audit Logs ── -->
+    <section class="admin-panel" id="panel-audit">
+      <div class="card">
+        <div class="toolbar">
+          <input class="form-control" id="auditActionFilter" placeholder="Filter by action (e.g. user.login)"/>
+          <input class="form-control" type="date" id="auditFromFilter"/>
+          <input class="form-control" type="date" id="auditToFilter"/>
+          <button class="btn btn-outline btn-sm" id="auditFilterBtn">Filter</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="rx-table">
+            <thead><tr><th>When</th><th>User</th><th>Action</th><th>Resource</th></tr></thead>
+            <tbody id="auditTableBody"></tbody>
+          </table>
+        </div>
+        <div id="auditEmpty" class="empty-state" style="display:none">No matching audit entries.</div>
+        <div class="pager" id="auditPager"></div>
+      </div>
+    </section>
+
+    <!-- ── API Usage ── -->
+    <section class="admin-panel" id="panel-api-usage">
+      <div class="card">
+        <div class="report-section-title">External API Usage (last 30 days)</div>
+        <p style="font-size:.8125rem;color:var(--rx-muted);margin-bottom:var(--space-4)">
+          Tracks calls to EMDEX, OpenFDA, Gemini, and Tesseract OCR jobs, derived from audit logs.
+        </p>
+        <div class="stat-grid" id="apiUsageSummary" style="margin-bottom:var(--space-5)"></div>
+        <div style="overflow-x:auto">
+          <table class="rx-table">
+            <thead><tr><th>Action</th><th>Calls</th><th>Unique Users</th></tr></thead>
+            <tbody id="apiUsageTableBody"></tbody>
+          </table>
+        </div>
+        <div id="apiUsageEmpty" class="empty-state" style="display:none">No external API activity recorded yet.</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- User detail modal -->
+<div class="modal-backdrop" id="userModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h2 class="modal-title">User Detail</h2>
+      <button class="modal-close" data-modal-close="userModal">×</button>
+    </div>
+    <div id="userModalBody"></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/admin.js"></script>
+</body>
+</html>

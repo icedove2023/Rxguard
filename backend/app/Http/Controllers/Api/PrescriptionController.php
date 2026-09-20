@@ -348,9 +348,15 @@ class PrescriptionController extends Controller
     // ----------------------------------------------------------------
     public function show(Request $request, int $id): JsonResponse
     {
-        $prescription = Prescription::forUser($request->user()->id)
-            ->with(['drugs', 'interactions.alternatives', 'reviewer'])
+        $prescription = Prescription::with(['drugs', 'interactions.alternatives', 'reviewer'])
             ->findOrFail($id);
+
+        $isOwner    = $prescription->user_id === $request->user()->id;
+        $isReviewer = in_array($request->user()->role, ['pharmacist', 'physician', 'admin']);
+
+        if (!$isOwner && !$isReviewer) {
+            abort(403, 'You do not have permission to view this prescription.');
+        }
 
         return response()->json([
             'status' => 'success',

@@ -7,16 +7,21 @@
  */
 
 import { get, post, put, del, upload } from './api';
+import { API_BASE_URL } from '@constants';
+import { TokenStore } from './api';
 import type {
   ApiResponse,
   PaginatedData,
   AuthTokens,
+  RegisterResult,
   User,
   LoginPayload,
   RegisterPayload,
   Prescription,
   PrescriptionListItem,
   UploadPrescriptionResponse,
+  OcrExtractResult,
+  SuggestionResult,
   InteractionCheckPayload,
   InteractionCheckResult,
   DrugMonograph,
@@ -29,7 +34,8 @@ import type {
 } from '@types';
 
 /* ─────────────────────────────────────────────────────────────────
-   Auth
+   Auth  (Supabase Auth owns credentials, email verification,
+   password reset/change — see backend AuthController for details)
 ───────────────────────────────────────────────────────────────── */
 
 export const AuthService = {
@@ -37,24 +43,36 @@ export const AuthService = {
     post<AuthTokens & { user: User }>('/auth/login', payload),
 
   register: (payload: RegisterPayload) =>
-    post<AuthTokens & { user: User }>('/auth/register', payload),
+    post<RegisterResult>('/auth/register', { ...payload, client: 'mobile' }),
 
   logout: () =>
     post<null>('/auth/logout'),
+
+  logoutAllDevices: () =>
+    post<null>('/auth/logout-all'),
 
   me: () =>
     get<User>('/auth/me'),
 
   forgotPassword: (email: string) =>
-    post<null>('/auth/forgot-password', { email }),
+    post<null>('/auth/forgot-password', { email, client: 'mobile' }),
 
-  resetPassword: (token: string, email: string, password: string, passwordConfirmation: string) =>
+  /** accessToken comes from the Supabase recovery deep-link, not an emailed code. */
+  resetPassword: (accessToken: string, password: string, passwordConfirmation: string) =>
     post<null>('/auth/reset-password', {
-      token,
-      email,
+      access_token: accessToken,
       password,
       password_confirmation: passwordConfirmation,
     }),
+
+  resendConfirmation: (email: string) =>
+    post<null>('/auth/resend-confirmation', { email, client: 'mobile' }),
+
+  /** Exchanges a refresh token for a fresh access token. Used directly
+   *  by the biometric-unlock flow; the axios interceptor in api.ts also
+   *  calls this same endpoint automatically on a 401. */
+  refreshToken: (refreshToken: string) =>
+    post<AuthTokens>('/auth/refresh', { refresh_token: refreshToken }),
 };
 
 /* ─────────────────────────────────────────────────────────────────
@@ -67,6 +85,18 @@ export const UserService = {
 
   updateProfile: (data: { name?: string; phone?: string | null }) =>
     put<User>('/user/profile', data),
+
+  /** Backend revokes every Supabase session (incl. this one) on success —
+   *  caller should clear local tokens and redirect to Login afterward. */
+  updatePassword: (currentPassword: string, password: string, passwordConfirmation: string) =>
+    put<null>('/user/password', {
+      current_password: currentPassword,
+      password,
+      password_confirmation: passwordConfirmation,
+    }),
+
+  deleteAccount: (password: string, reason?: string | null) =>
+    del<null>('/user/account', { data: { password, reason } }),
 
   uploadAvatar: (uri: string, mimeType: string) => {
     const formData = new FormData();
@@ -86,7 +116,9 @@ export const UserService = {
 };
 
 /* ─────────────────────────────────────────────────────────────────
-   Prescriptions
+   Prescriptions — staged pipeline:
+     upload -> extract (Tesseract) -> suggest (Gemini, optional) ->
+     confirm (user-approved text -> EMDEX/OpenFDA validation)
 ───────────────────────────────────────────────────────────────── */
 
 export const PrescriptionService = {
@@ -115,11 +147,32 @@ export const PrescriptionService = {
     );
   },
 
-  analyze: (id: number) =>
-    post<Prescription>(`/prescriptions/${id}/analyze`),
+  /** Step 2 — free, open-source Tesseract OCR. Raw text only. */
+  extract: (id: number) =>
+    post<OcrExtractResult>(`/prescriptions/${id}/extract`),
+
+  /** Step 3 (optional) — Gemini suggests corrections/cleansing. Advisory only. */
+  suggest: (id: number) =>
+    post<SuggestionResult>(`/prescriptions/${id}/suggest`),
+
+  /** Step 4 — user-approved text triggers EMDEX + OpenFDA validation. */
+  confirm: (id: number, approvedText: string, editSource: 'manual' | 'gemini' | 'hybrid') =>
+    post<Prescription>(`/prescriptions/${id}/confirm`, {
+      approved_text: approvedText,
+      edit_source: editSource,
+    }),
 
   destroy: (id: number) =>
     del<null>(`/prescriptions/${id}`),
+
+  /** The scan file lives on a private disk — fetch with the auth header
+   *  and hand the caller a URI usable directly in an <Image>. On RN,
+   *  passing the Authorization header via Image source.headers works
+   *  natively (unlike web's <img src>), so no blob conversion needed. */
+  scanImageSource: (id: number) => ({
+    uri: `${API_BASE_URL}/prescriptions/${id}/scan`,
+    headers: { Authorization: `Bearer ${TokenStore.getAccess() ?? ''}` },
+  }),
 };
 
 /* ─────────────────────────────────────────────────────────────────
@@ -180,6 +233,9 @@ export const AdminService = {
   users: (params?: { page?: number; role?: string; search?: string }) =>
     get<PaginatedData<User>>('/admin/users', params),
 
+  user: (id: number) =>
+    get<User>(`/admin/users/${id}`),
+
   updateUserStatus: (id: number, isActive: boolean) =>
     put<null>(`/admin/users/${id}/status`, { is_active: isActive }),
 
@@ -191,4 +247,24 @@ export const AdminService = {
 
   auditLogs: (params?: { page?: number; action?: string; from?: string; to?: string }) =>
     get<PaginatedData<unknown>>('/admin/audit-logs', params),
+
+  apiUsage: () =>
+    get<Record<string, unknown>>('/admin/api-usage'),
+};
+
+/* ─────────────────────────────────────────────────────────────────
+   Professional review queue (pharmacist & physician)
+───────────────────────────────────────────────────────────────── */
+
+export const ProfessionalReviewService = {
+  queue: (page = 1) =>
+    get<{ pending_count: number; prescriptions: PaginatedData<PrescriptionListItem> }>(
+      '/professional/prescriptions/queue', { page }
+    ),
+
+  approve: (id: number, notes?: string | null) =>
+    post<null>(`/professional/prescriptions/${id}/approve`, { notes }),
+
+  flag: (id: number, flagReason: string, severity?: 'low' | 'medium' | 'high' | 'critical') =>
+    post<null>(`/professional/prescriptions/${id}/flag`, { flag_reason: flagReason, severity }),
 };

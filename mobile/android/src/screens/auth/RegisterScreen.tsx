@@ -7,7 +7,7 @@
  * Uses useAuth().register() which calls POST /api/v1/auth/register.
  */
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo} from 'react';
 import {
   View,
   Text,
@@ -18,16 +18,18 @@ import {
   Platform,
   ActivityIndicator,
   StyleSheet,
+  Alert,
   type TextInput as TextInputType,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAuth }                 from '@context/AuthContext';
-import { COLORS, FONT_SIZE, SPACING, RADIUS, SCREENS, USER_ROLES } from '@constants';
+import { FONT_SIZE, SPACING, RADIUS, SCREENS, USER_ROLES } from '@constants';
 import { Validate }                from '@utils';
 import { ApiError }                from '@services/api';
 import type { AuthStackParamList, UserRole } from '@types';
+import { useTheme, type ThemeColors } from '@context/ThemeContext';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
@@ -75,12 +77,14 @@ interface FormErrors extends Partial<Record<keyof FormFields, string>> {
 /* ─────────────────────────────────────────────────────────────────
    Sub-components
 ───────────────────────────────────────────────────────────────── */
-function FieldError({ message }: { message?: string }) {
+type Styles = ReturnType<typeof createStyles>;
+
+function FieldError({ message, s }: { message?: string; s: Styles }) {
   if (!message) return null;
   return <Text style={s.fieldError}>{message}</Text>;
 }
 
-function SectionDivider({ label }: { label: string }) {
+function SectionDivider({ label, s }: { label: string; s: Styles }) {
   return (
     <View style={s.sectionDivider}>
       <View style={s.sectionDividerLine} />
@@ -90,7 +94,7 @@ function SectionDivider({ label }: { label: string }) {
   );
 }
 
-function PasswordStrengthBar({ password }: { password: string }) {
+function PasswordStrengthBar({ password, s, colors }: { password: string; s: Styles; colors: ThemeColors }) {
   if (!password) return null;
 
   let score = 0;
@@ -101,11 +105,11 @@ function PasswordStrengthBar({ password }: { password: string }) {
   if (/[^A-Za-z0-9]/.test(password))  score++;
 
   const levels = [
-    { color: COLORS.RED,   label: 'Very weak'  },
-    { color: COLORS.RED,   label: 'Weak'       },
-    { color: COLORS.AMBER, label: 'Fair'       },
-    { color: COLORS.GREEN, label: 'Strong'     },
-    { color: COLORS.GREEN, label: 'Very strong'},
+    { color: colors.red,   label: 'Very weak'  },
+    { color: colors.red,   label: 'Weak'       },
+    { color: colors.amber, label: 'Fair'       },
+    { color: colors.green, label: 'Strong'     },
+    { color: colors.green, label: 'Very strong'},
   ];
   const lvl = levels[Math.min(score, 4)];
   const pct = ((score + 1) / 5) * 100;
@@ -124,6 +128,9 @@ function PasswordStrengthBar({ password }: { password: string }) {
    Screen
 ───────────────────────────────────────────────────────────────── */
 export default function RegisterScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const s = useMemo(() => createStyles(colors), [colors]);
+
   const { register, isLoading } = useAuth();
 
   const [role,       setRole    ] = useState<UserRole>(USER_ROLES.CONSUMER);
@@ -206,7 +213,7 @@ export default function RegisterScreen({ navigation }: Props) {
     setErrors({});
 
     try {
-      await register({
+      const { requiresConfirmation } = await register({
         name                 : fields.name.trim(),
         email                : fields.email.trim(),
         phone                : fields.phone.trim() || null,
@@ -219,7 +226,16 @@ export default function RegisterScreen({ navigation }: Props) {
           specialty     : fields.specialty.trim() || undefined,
         }),
       });
-      // Navigation handled automatically by RootNavigator on auth state change
+
+      if (requiresConfirmation) {
+        Alert.alert(
+          'Almost there!',
+          'Check your email to confirm your address before logging in.',
+          [{ text: 'OK', onPress: () => navigation.navigate('Login' as never) }]
+        );
+      }
+      // Otherwise: navigation is handled automatically by RootNavigator
+      // on auth state change (a live session was issued immediately).
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.validationErrors) {
@@ -294,7 +310,7 @@ export default function RegisterScreen({ navigation }: Props) {
               })}
             </View>
 
-            <SectionDivider label="Personal information" />
+            <SectionDivider label="Personal information" s={s} />
 
             {/* ── Name ── */}
             <View style={s.formGroup}>
@@ -304,14 +320,14 @@ export default function RegisterScreen({ navigation }: Props) {
                 value={fields.name}
                 onChangeText={v => set('name', v)}
                 placeholder="Chukwuemeka Obi"
-                placeholderTextColor={COLORS.MUTED}
+                placeholderTextColor={colors.muted}
                 autoComplete="name"
                 autoCapitalize="words"
                 returnKeyType="next"
                 onSubmitEditing={() => emailRef.current?.focus()}
                 editable={!isLoading}
               />
-              <FieldError message={errors.name} />
+              <FieldError message={errors.name} s={s} />
             </View>
 
             {/* ── Email ── */}
@@ -323,7 +339,7 @@ export default function RegisterScreen({ navigation }: Props) {
                 value={fields.email}
                 onChangeText={v => set('email', v)}
                 placeholder="you@example.com"
-                placeholderTextColor={COLORS.MUTED}
+                placeholderTextColor={colors.muted}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -332,7 +348,7 @@ export default function RegisterScreen({ navigation }: Props) {
                 onSubmitEditing={() => phoneRef.current?.focus()}
                 editable={!isLoading}
               />
-              <FieldError message={errors.email} />
+              <FieldError message={errors.email} s={s} />
             </View>
 
             {/* ── Phone ── */}
@@ -347,7 +363,7 @@ export default function RegisterScreen({ navigation }: Props) {
                 value={fields.phone}
                 onChangeText={v => set('phone', v)}
                 placeholder="+2348012345678"
-                placeholderTextColor={COLORS.MUTED}
+                placeholderTextColor={colors.muted}
                 keyboardType="phone-pad"
                 autoComplete="tel"
                 returnKeyType={isPro ? 'next' : 'next'}
@@ -356,13 +372,13 @@ export default function RegisterScreen({ navigation }: Props) {
                 }
                 editable={!isLoading}
               />
-              <FieldError message={errors.phone} />
+              <FieldError message={errors.phone} s={s} />
             </View>
 
             {/* ── Professional credentials ── */}
             {isPro && (
               <>
-                <SectionDivider label="Professional credentials" />
+                <SectionDivider label="Professional credentials" s={s} />
 
                 {/* Licence number */}
                 <View style={s.formGroup}>
@@ -380,14 +396,14 @@ export default function RegisterScreen({ navigation }: Props) {
                     placeholder={
                       role === USER_ROLES.PHARMACIST ? 'PCN/2022/000123' : 'MDCN/2020/012345'
                     }
-                    placeholderTextColor={COLORS.MUTED}
+                    placeholderTextColor={colors.muted}
                     autoCapitalize="characters"
                     autoCorrect={false}
                     returnKeyType="next"
                     onSubmitEditing={() => institutionRef.current?.focus()}
                     editable={!isLoading}
                   />
-                  <FieldError message={errors.license_number} />
+                  <FieldError message={errors.license_number} s={s} />
                 </View>
 
                 {/* Institution */}
@@ -401,13 +417,13 @@ export default function RegisterScreen({ navigation }: Props) {
                     value={fields.institution}
                     onChangeText={v => set('institution', v)}
                     placeholder="Lagos Island General Hospital"
-                    placeholderTextColor={COLORS.MUTED}
+                    placeholderTextColor={colors.muted}
                     autoCapitalize="words"
                     returnKeyType="next"
                     onSubmitEditing={() => specialtyRef.current?.focus()}
                     editable={!isLoading}
                   />
-                  <FieldError message={errors.institution} />
+                  <FieldError message={errors.institution} s={s} />
                 </View>
 
                 {/* Specialty */}
@@ -424,7 +440,7 @@ export default function RegisterScreen({ navigation }: Props) {
                     placeholder={
                       role === USER_ROLES.PHARMACIST ? 'e.g. Clinical Pharmacy' : 'e.g. Internal Medicine'
                     }
-                    placeholderTextColor={COLORS.MUTED}
+                    placeholderTextColor={colors.muted}
                     autoCapitalize="words"
                     returnKeyType="next"
                     onSubmitEditing={() => passwordRef.current?.focus()}
@@ -443,7 +459,7 @@ export default function RegisterScreen({ navigation }: Props) {
               </>
             )}
 
-            <SectionDivider label="Account security" />
+            <SectionDivider label="Account security" s={s} />
 
             {/* ── Password ── */}
             <View style={s.formGroup}>
@@ -455,7 +471,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   value={fields.password}
                   onChangeText={v => set('password', v)}
                   placeholder="Min. 8 characters"
-                  placeholderTextColor={COLORS.MUTED}
+                  placeholderTextColor={colors.muted}
                   secureTextEntry={!showPwd}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -472,8 +488,8 @@ export default function RegisterScreen({ navigation }: Props) {
                   <Text style={s.eyeIcon}>{showPwd ? '🙈' : '👁'}</Text>
                 </TouchableOpacity>
               </View>
-              <PasswordStrengthBar password={fields.password} />
-              <FieldError message={errors.password} />
+              <PasswordStrengthBar password={fields.password} s={s} colors={colors} />
+              <FieldError message={errors.password} s={s} />
             </View>
 
             {/* ── Confirm password ── */}
@@ -486,7 +502,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   value={fields.password_confirmation}
                   onChangeText={v => set('password_confirmation', v)}
                   placeholder="Repeat password"
-                  placeholderTextColor={COLORS.MUTED}
+                  placeholderTextColor={colors.muted}
                   secureTextEntry={!showConfirm}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -503,7 +519,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   <Text style={s.eyeIcon}>{showConfirm ? '🙈' : '👁'}</Text>
                 </TouchableOpacity>
               </View>
-              <FieldError message={errors.password_confirmation} />
+              <FieldError message={errors.password_confirmation} s={s} />
             </View>
 
             {/* ── Consent checkbox ── */}
@@ -575,8 +591,9 @@ export default function RegisterScreen({ navigation }: Props) {
 /* ─────────────────────────────────────────────────────────────────
    Styles
 ───────────────────────────────────────────────────────────────── */
-const s = StyleSheet.create({
-  safe  : { flex: 1, backgroundColor: COLORS.BACKGROUND },
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+  safe  : { flex: 1, backgroundColor: colors.background },
   flex  : { flex: 1 },
   scroll: { flexGrow: 1, padding: SPACING.XL },
 
@@ -584,20 +601,20 @@ const s = StyleSheet.create({
   header   : { alignItems: 'center', paddingVertical: SPACING.XL },
   logoBox  : {
     width: 56, height: 56, borderRadius: RADIUS.LG,
-    backgroundColor: COLORS.BLUE,
+    backgroundColor: colors.blue,
     alignItems: 'center', justifyContent: 'center',
     marginBottom: SPACING.MD,
   },
   logoText : { color: '#fff', fontSize: FONT_SIZE.XL, fontWeight: '800' },
-  title    : { fontSize: FONT_SIZE.XXL, fontWeight: '700', color: COLORS.TEXT, marginBottom: SPACING.XS },
-  subtitle : { fontSize: FONT_SIZE.SM, color: COLORS.MUTED, textAlign: 'center', lineHeight: 20 },
+  title    : { fontSize: FONT_SIZE.XXL, fontWeight: '700', color: colors.text, marginBottom: SPACING.XS },
+  subtitle : { fontSize: FONT_SIZE.SM, color: colors.muted, textAlign: 'center', lineHeight: 20 },
 
   /* Card */
   card: {
-    backgroundColor: COLORS.SURFACE,
+    backgroundColor: colors.surface,
     borderRadius   : RADIUS.XL,
     padding        : SPACING.XL,
-    shadowColor    : COLORS.BLUE,
+    shadowColor    : colors.blue,
     shadowOffset   : { width: 0, height: 4 },
     shadowOpacity  : 0.08,
     shadowRadius   : 20,
@@ -607,65 +624,65 @@ const s = StyleSheet.create({
 
   /* Error */
   errorBanner    : {
-    backgroundColor: COLORS.RED_LIGHT,
+    backgroundColor: colors.redLight,
     borderRadius   : RADIUS.MD,
     padding        : SPACING.MD,
     marginBottom   : SPACING.LG,
     borderLeftWidth: 4,
-    borderLeftColor: COLORS.RED,
+    borderLeftColor: colors.red,
   },
-  errorBannerText: { fontSize: FONT_SIZE.SM, color: COLORS.RED_DARK },
+  errorBannerText: { fontSize: FONT_SIZE.SM, color: colors.redDark },
 
   /* Role selector */
-  sectionLabel: { fontSize: FONT_SIZE.SM, fontWeight: '600', color: COLORS.MUTED, marginBottom: SPACING.SM },
+  sectionLabel: { fontSize: FONT_SIZE.SM, fontWeight: '600', color: colors.muted, marginBottom: SPACING.SM },
   roleGrid    : { flexDirection: 'row', gap: SPACING.SM, marginBottom: SPACING.LG },
   roleCard    : {
     flex          : 1,
     borderWidth   : 1.5,
-    borderColor   : COLORS.BORDER,
+    borderColor   : colors.border,
     borderRadius  : RADIUS.LG,
     padding       : SPACING.MD,
     alignItems    : 'center',
-    backgroundColor: COLORS.SURFACE,
+    backgroundColor: colors.surface,
   },
-  roleCardActive : { borderColor: COLORS.BLUE, backgroundColor: COLORS.BLUE_LIGHT },
+  roleCardActive : { borderColor: colors.blue, backgroundColor: colors.blueLight },
   roleIcon       : { fontSize: 22, marginBottom: SPACING.XS },
-  roleLabel      : { fontSize: FONT_SIZE.XS, fontWeight: '700', color: COLORS.MUTED, marginBottom: 2 },
-  roleLabelActive: { color: COLORS.BLUE },
-  roleDesc       : { fontSize: 10, color: COLORS.MUTED, textAlign: 'center', lineHeight: 13 },
-  roleDescActive : { color: COLORS.BLUE_MID },
+  roleLabel      : { fontSize: FONT_SIZE.XS, fontWeight: '700', color: colors.muted, marginBottom: 2 },
+  roleLabelActive: { color: colors.blue },
+  roleDesc       : { fontSize: 10, color: colors.muted, textAlign: 'center', lineHeight: 13 },
+  roleDescActive : { color: colors.blue },
 
   /* Section divider */
   sectionDivider    : { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.LG },
-  sectionDividerLine: { flex: 1, height: 1, backgroundColor: COLORS.BORDER },
-  sectionDividerText: { marginHorizontal: SPACING.SM, fontSize: FONT_SIZE.XS, fontWeight: '600', color: COLORS.MUTED },
+  sectionDividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  sectionDividerText: { marginHorizontal: SPACING.SM, fontSize: FONT_SIZE.XS, fontWeight: '600', color: colors.muted },
 
   /* Form */
   formGroup : { marginBottom: SPACING.LG },
-  label     : { fontSize: FONT_SIZE.SM, fontWeight: '500', color: COLORS.TEXT_SECONDARY, marginBottom: SPACING.XS },
-  optional  : { fontWeight: '400', color: COLORS.MUTED },
-  hint      : { fontWeight: '400', color: COLORS.MUTED },
+  label     : { fontSize: FONT_SIZE.SM, fontWeight: '500', color: colors.textSecondary, marginBottom: SPACING.XS },
+  optional  : { fontWeight: '400', color: colors.muted },
+  hint      : { fontWeight: '400', color: colors.muted },
   input     : {
     borderWidth      : 1.5,
-    borderColor      : COLORS.BORDER,
+    borderColor      : colors.border,
     borderRadius     : RADIUS.MD,
     paddingVertical  : 12,
     paddingHorizontal: 14,
     fontSize         : FONT_SIZE.BASE,
-    color            : COLORS.TEXT,
-    backgroundColor  : COLORS.SURFACE,
+    color            : colors.text,
+    backgroundColor  : colors.surface,
   },
   monoInput : { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', letterSpacing: 0.5 },
-  inputError: { borderColor: COLORS.RED },
+  inputError: { borderColor: colors.red },
   inputRow  : { flexDirection: 'row', alignItems: 'center' },
   inputFlex : { flex: 1 },
   eyeBtn    : { paddingHorizontal: SPACING.MD, paddingVertical: SPACING.SM },
   eyeIcon   : { fontSize: 18 },
-  fieldError: { fontSize: FONT_SIZE.XS, color: COLORS.RED, marginTop: SPACING.XS },
+  fieldError: { fontSize: FONT_SIZE.XS, color: colors.red, marginTop: SPACING.XS },
 
   /* Strength meter */
   strengthWrap : { marginTop: SPACING.XS },
-  strengthTrack: { height: 4, backgroundColor: COLORS.GRAY_200, borderRadius: RADIUS.FULL, overflow: 'hidden', marginBottom: 3 },
+  strengthTrack: { height: 4, backgroundColor: colors.border, borderRadius: RADIUS.FULL, overflow: 'hidden', marginBottom: 3 },
   strengthFill : { height: '100%', borderRadius: RADIUS.FULL },
   strengthLabel: { fontSize: FONT_SIZE.XS },
 
@@ -673,31 +690,31 @@ const s = StyleSheet.create({
   verificationNotice: {
     flexDirection  : 'row',
     gap            : SPACING.SM,
-    backgroundColor: COLORS.BLUE_LIGHT,
+    backgroundColor: colors.blueLight,
     borderRadius   : RADIUS.MD,
     padding        : SPACING.MD,
     marginBottom   : SPACING.LG,
   },
   verificationIcon: { fontSize: 16, flexShrink: 0 },
-  verificationText: { flex: 1, fontSize: FONT_SIZE.XS, color: COLORS.BLUE_MID, lineHeight: 18 },
+  verificationText: { flex: 1, fontSize: FONT_SIZE.XS, color: colors.blue, lineHeight: 18 },
 
   /* Consent */
   consentRow    : { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.SM, marginBottom: SPACING.LG },
   checkbox      : {
     width: 20, height: 20, borderRadius: RADIUS.SM,
-    borderWidth: 1.5, borderColor: COLORS.BORDER,
+    borderWidth: 1.5, borderColor: colors.border,
     alignItems: 'center', justifyContent: 'center',
     flexShrink: 0, marginTop: 1,
-    backgroundColor: COLORS.SURFACE,
+    backgroundColor: colors.surface,
   },
-  checkboxChecked: { backgroundColor: COLORS.BLUE, borderColor: COLORS.BLUE },
+  checkboxChecked: { backgroundColor: colors.blue, borderColor: colors.blue },
   checkmark      : { color: '#fff', fontSize: 12, fontWeight: '800' },
-  consentText    : { flex: 1, fontSize: FONT_SIZE.SM, color: COLORS.MUTED, lineHeight: 20 },
-  consentLink    : { color: COLORS.BLUE, fontWeight: '500' },
+  consentText    : { flex: 1, fontSize: FONT_SIZE.SM, color: colors.muted, lineHeight: 20 },
+  consentLink    : { color: colors.blue, fontWeight: '500' },
 
   /* Primary button */
   primaryBtn        : {
-    backgroundColor: COLORS.BLUE,
+    backgroundColor: colors.blue,
     borderRadius   : RADIUS.MD,
     paddingVertical: 14,
     alignItems     : 'center',
@@ -707,9 +724,10 @@ const s = StyleSheet.create({
 
   /* Footer */
   footer    : { flexDirection: 'row', justifyContent: 'center', marginBottom: SPACING.LG },
-  footerText: { fontSize: FONT_SIZE.SM, color: COLORS.MUTED },
-  footerLink: { fontSize: FONT_SIZE.SM, color: COLORS.BLUE, fontWeight: '600' },
+  footerText: { fontSize: FONT_SIZE.SM, color: colors.muted },
+  footerLink: { fontSize: FONT_SIZE.SM, color: colors.blue, fontWeight: '600' },
 
   /* Legal */
-  legal: { fontSize: FONT_SIZE.XS, color: COLORS.MUTED, textAlign: 'center', lineHeight: 18, marginBottom: SPACING.XL },
-});
+  legal: { fontSize: FONT_SIZE.XS, color: colors.muted, textAlign: 'center', lineHeight: 18, marginBottom: SPACING.XL },
+  });
+}
