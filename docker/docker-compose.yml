@@ -101,6 +101,7 @@ services:
       dockerfile: docker/Dockerfile.backend
     container_name: rxguard_backend
     restart: unless-stopped
+    command: ["php-fpm"]
     environment:
       <<: *backend-env
     volumes:

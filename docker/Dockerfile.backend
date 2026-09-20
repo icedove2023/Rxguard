@@ -108,9 +108,11 @@ RUN rm -rf bootstrap/cache/* && \
 
 USER rxguard
 
-EXPOSE 9000
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD php-fpm -t || exit 1
 
-CMD ["php-fpm"]
+# Render runs this image as a standalone web service and supplies PORT.
+# The local Compose stack overrides this with PHP-FPM behind Nginx.
+CMD ["sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
