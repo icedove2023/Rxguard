@@ -11,7 +11,7 @@
 // -----------------------------------------------------------------------
 // Configuration
 // -----------------------------------------------------------------------
-const API_BASE     = (window.RXGUARD_CONFIG?.apiBase) || 'https://rxguard-us5h.onrender.com'|| 'http://localhost:8000/api/v1';
+const API_BASE     = (window.RXGUARD_CONFIG?.apiBase) || 'https://rxguard-us5h.onrender.com/api/v1'|| 'http://localhost:8000/api/v1';
 const TOKEN_KEY    = 'rxguard_access_token';
 const REFRESH_KEY  = 'rxguard_refresh_token';
 const USER_KEY     = 'rxguard_user';
