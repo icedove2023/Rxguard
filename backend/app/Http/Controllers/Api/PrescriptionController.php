@@ -56,6 +56,7 @@ class PrescriptionController extends Controller
             'prescription' => [
                 'required', 'file',
                 'mimes:jpg,jpeg,png,pdf',
+                'extensions:jpg,jpeg,png,pdf',
                 'max:10240',   // 10 MB
             ],
         ]);

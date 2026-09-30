@@ -1,5 +1,10 @@
 <?php
 
+$b2Endpoint = rtrim((string) env('AWS_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com'), '/');
+if ($b2Endpoint !== '' && !preg_match('#^https?://#i', $b2Endpoint)) {
+    $b2Endpoint = 'https://' . $b2Endpoint;
+}
+
 return [
 
     /*
@@ -77,7 +82,7 @@ return [
             'region' => env('AWS_DEFAULT_REGION', 'us-east-005'),
             'bucket' => env('AWS_BUCKET', 'rxguard-prescriptions'),
             'url' => env('AWS_URL'),
-            'endpoint' => env('AWS_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com'),
+            'endpoint' => $b2Endpoint,
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => true,
             'report' => true,

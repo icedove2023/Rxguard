@@ -37,7 +37,10 @@ const USER_KEY     = 'rxguard_user';
 const TokenStore = {
   getAccess  : ()    => localStorage.getItem(TOKEN_KEY),
   getRefresh : ()    => localStorage.getItem(REFRESH_KEY),
-  setTokens  : (a,r) => { localStorage.setItem(TOKEN_KEY, a); localStorage.setItem(REFRESH_KEY, r); },
+  setTokens  : (access, refresh) => {
+    if (access) localStorage.setItem(TOKEN_KEY, access);
+    if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
+  },
   clearTokens: ()    => { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(REFRESH_KEY); localStorage.removeItem(USER_KEY); },
   setUser    : (u)   => localStorage.setItem(USER_KEY, JSON.stringify(u)),
   getUser    : ()    => { try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; } },
@@ -49,6 +52,20 @@ const TokenStore = {
 
 let _refreshPromise = null;   // Deduplicate concurrent refresh calls
 
+function tokenExpiresSoon(token, leewaySeconds = 60) {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const claims = JSON.parse(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, '=')));
+    return Number.isFinite(claims.exp) && claims.exp <= Date.now() / 1000 + leewaySeconds;
+  } catch {
+    return false;
+  }
+}
+
+function isPublicAuthRequest(endpoint) {
+  return /^\/auth\/(?:login|register|refresh|forgot-password|reset-password|resend-confirmation)(?:\?|$)/.test(endpoint);
+}
+
 /**
  * Make an authenticated API request.
  *
@@ -58,7 +75,12 @@ let _refreshPromise = null;   // Deduplicate concurrent refresh calls
  */
 async function apiRequest(endpoint, options = {}, retry = true) {
   const url     = buildApiUrl(endpoint);
-  const token   = TokenStore.getAccess();
+  let token = TokenStore.getAccess();
+
+  if (retry && !isPublicAuthRequest(endpoint) && token && tokenExpiresSoon(token)) {
+    await attemptTokenRefresh();
+    token = TokenStore.getAccess();
+  }
 
   const headers = {
     'Accept'      : 'application/json',
@@ -77,16 +99,42 @@ async function apiRequest(endpoint, options = {}, retry = true) {
   try {
     response = await fetch(url, { ...options, headers });
   } catch (networkError) {
-    console.error(networkError);
-    throw new RxGuardApiError('Network error. Please check your connection.', 0);
+    const details = `${networkError.name || ''} ${networkError.message || ''}`;
+    const fileUnavailable = /ERR_UPLOAD_FILE_CHANGED|file (?:has )?changed|file.*unavailable/i.test(details);
+    const timedOut = options.signal?.reason === 'timeout';
+    const aborted = networkError.name === 'AbortError';
+    const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    const code = fileUnavailable ? 'FILE_UNAVAILABLE'
+      : timedOut ? 'REQUEST_TIMEOUT'
+      : aborted ? 'REQUEST_ABORTED'
+      : offline ? 'NETWORK_UNAVAILABLE'
+      : 'NETWORK_OR_CORS';
+    const message = fileUnavailable ? 'The selected file could not be read by the browser. Please select it again.'
+      : timedOut ? 'The request timed out. Please try again.'
+      : aborted ? 'The request was cancelled.'
+      : offline ? 'No network connection is available. Check your connection and try again.'
+      : 'Unable to reach the RxGuard service. Check your connection or try again.';
+
+    if (isLocalHost || window.RXGUARD_CONFIG?.debug === true) {
+      console.warn('RxGuard API request failed', { endpoint, method: options.method || 'GET', code, name: networkError.name });
+    }
+    throw new RxGuardApiError(message, 0, null, null, code);
   }
 
   // Token expired → attempt refresh, then retry once
   if (response.status === 401 && retry) {
+    const currentToken = TokenStore.getAccess();
+    if (currentToken && currentToken !== token) {
+      return apiRequest(endpoint, options, false);
+    }
+
     const refreshed = await attemptTokenRefresh();
     if (refreshed) {
       return apiRequest(endpoint, options, false);
     } else {
+      if (TokenStore.getAccess() && TokenStore.getAccess() !== token) {
+        return apiRequest(endpoint, options, false);
+      }
       TokenStore.clearTokens();
       window.dispatchEvent(new CustomEvent('rxguard:unauthenticated'));
       throw new RxGuardApiError('Session expired. Please log in again.', 401);
@@ -132,6 +180,7 @@ async function attemptTokenRefresh() {
       if (!res.ok) return false;
 
       const data = await res.json();
+      if (!data.data?.access_token) return false;
       TokenStore.setTokens(data.data.access_token, data.data.refresh_token);
       return true;
     } catch {
@@ -246,7 +295,7 @@ const Auth = {
 
   async resendConfirmation(email) { return post('/auth/resend-confirmation', { email }); },
 
-  isAuthenticated : ()  => !!TokenStore.getAccess(),
+  isAuthenticated : ()  => !!(TokenStore.getAccess() || TokenStore.getRefresh()),
   currentUser     : ()  => TokenStore.getUser(),
   currentRole     : ()  => TokenStore.getUser()?.role ?? null,
   isAdmin         : ()  => Auth.currentRole() === 'admin',

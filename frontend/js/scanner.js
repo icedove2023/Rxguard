@@ -14,6 +14,8 @@
 const ScanState = {
   prescriptionId : null,
   file           : null,
+  previewUrl     : null,
+  selectionId    : 0,
   polling        : null,   // setInterval handle
   currentStep    : 0,      // 0-3
   baselineText   : '',     // text currently considered the "checkpoint"
@@ -57,19 +59,23 @@ function initUploadZone() {
   });
 }
 
-function handleFileSelected(file) {
-  const allowed = ['image/jpeg', 'image/png', 'application/pdf'];
-  if (!allowed.includes(file.type)) {
-    RxGuard.Toast.error('Unsupported file', 'Please upload a JPG, PNG, or PDF file.');
-    return;
-  }
-  if (file.size > 10 * 1024 * 1024) {
-    RxGuard.Toast.error('File too large', 'Maximum file size is 10 MB.');
-    return;
-  }
+async function handleFileSelected(file) {
+  const selectionId = ++ScanState.selectionId;
+  ScanState.file = null;
+  document.getElementById('scanBtn').disabled = true;
 
-  ScanState.file = file;
-  showFilePreview(file);
+  try {
+    const stableFile = await RxGuardUploadFile.prepareSelectedFile(file);
+    if (selectionId !== ScanState.selectionId) return;
+    ScanState.file = stableFile;
+    document.getElementById('scanBtn').disabled = false;
+    showFilePreview(stableFile);
+  } catch (error) {
+    if (selectionId !== ScanState.selectionId) return;
+    RxGuard.Toast.error(error.code === 'FILE_TOO_LARGE' ? 'File too large' : 'Unable to use file', error.message);
+  } finally {
+    document.getElementById('fileInput').value = '';
+  }
 }
 
 function showFilePreview(file) {
@@ -84,24 +90,24 @@ function showFilePreview(file) {
   document.getElementById('previewSize').textContent = formatBytes(file.size);
   document.getElementById('previewType').textContent = file.type.split('/')[1].toUpperCase();
 
-  // Image thumbnail
+  if (ScanState.previewUrl) URL.revokeObjectURL(ScanState.previewUrl);
   if (file.type.startsWith('image/')) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const thumb = document.getElementById('previewThumb');
-      if (thumb) {
-        thumb.innerHTML = `<img src="${e.target.result}" alt="Preview"
-          style="width:100%;height:100%;object-fit:cover;border-radius:8px"/>`;
-      }
-    };
-    reader.readAsDataURL(file);
+    ScanState.previewUrl = URL.createObjectURL(file);
+    const thumb = document.getElementById('previewThumb');
+    if (thumb) {
+      thumb.innerHTML = `<img src="${ScanState.previewUrl}" alt="Preview"
+        style="width:100%;height:100%;object-fit:cover;border-radius:8px"/>`;
+    }
   } else {
+    ScanState.previewUrl = null;
     const thumb = document.getElementById('previewThumb');
     if (thumb) thumb.innerHTML = '<span style="font-size:2rem">📄</span>';
   }
 }
 
 function clearUpload() {
+  if (ScanState.previewUrl) URL.revokeObjectURL(ScanState.previewUrl);
+  ScanState.previewUrl = null;
   ScanState.file           = null;
   ScanState.prescriptionId = null;
   ScanState.currentStep    = 0;
@@ -115,6 +121,7 @@ function clearUpload() {
   document.getElementById('suggestionBox').style.display = 'none';
   document.getElementById('reportSection').style.display = 'none';
   document.getElementById('fileInput').value             = '';
+  document.getElementById('scanBtn').disabled             = false;
 
   resetSteps();
 }
@@ -156,14 +163,26 @@ async function startScan() {
     showReviewScreen(extractRes.data);
 
   } catch (err) {
-    const operation = err.code === 'STORAGE_FAILED' || err.code === 'UPLOAD_FAILED'
-      ? 'Upload failed'
-      : err.code === 'OCR_TIMEOUT'
-        ? 'OCR timed out'
-        : 'Prescription processing failed';
-    setProgressLabel(`⛔ ${err.message || 'Please try again.'}`);
+    const operation = err.status === 401 ? 'Session expired'
+      : err.status === 403 ? 'Access denied'
+      : err.status === 422 ? 'Invalid file'
+      : err.status === 429 ? 'Too many requests'
+      : err.status === 503 || err.status === 504 ? 'Service temporarily unavailable'
+      : err.status >= 500 ? 'Server error'
+      : err.code === 'FILE_UNAVAILABLE' ? 'File unavailable'
+      : err.code === 'REQUEST_TIMEOUT' ? 'Request timed out'
+      : err.code === 'REQUEST_ABORTED' ? 'Request cancelled'
+      : err.code === 'NETWORK_UNAVAILABLE' ? 'Network unavailable'
+      : err.code === 'NETWORK_OR_CORS' ? 'Could not reach service'
+      : err.code === 'STORAGE_FAILED' || err.code === 'UPLOAD_FAILED' ? 'Upload failed'
+      : err.code === 'OCR_TIMEOUT' ? 'OCR timed out'
+      : 'Prescription processing failed';
+    const message = err.code === 'FILE_UNAVAILABLE'
+      ? 'The selected file could not be read by the browser. Please select it again.'
+      : err.message || 'Please try again.';
+    setProgressLabel(`⛔ ${message}`);
     setProgressBar(0, 'red');
-    RxGuard.Toast.error(operation, err.message || 'Please try again or use a clearer image.');
+    RxGuard.Toast.error(operation, message);
     document.getElementById('retryScanBtn').style.display = 'inline-flex';
   }
 }
