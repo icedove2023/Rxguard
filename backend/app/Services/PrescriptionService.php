@@ -142,9 +142,9 @@ class PrescriptionService
 
     /**
      * For each drug in $drugList:
-     *   - Resolve generic name via EMDEX
-     *   - Fetch monograph (indications, dosage, contraindications, etc.)
-     *   - Fetch Nigerian brands via OpenFDA
+    *   - Resolve generic name from available lookup data
+    *   - Fetch monograph (indications, dosage, contraindications, etc.) from OpenFDA
+    *   - Fetch Nigerian brands via EMDEX
      *   - Persist as PrescriptionDrug rows
      */
     public function enrichDrugs(Prescription $prescription, array $drugList): array

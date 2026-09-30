@@ -264,7 +264,7 @@ class AdminController extends Controller
             'prescription.extracted',   // Tesseract OCR
             'prescription.suggested',   // Gemini suggestion
             'prescription.confirmed',   // EMDEX + OpenFDA validation
-            'drug.interaction.check',   // EMDEX + OpenFDA
+            'drug.interaction.check',   // EMDEX interactions; OpenFDA pregnancy-risk context
             'chat.message',             // Gemini chatbot
         ];
         

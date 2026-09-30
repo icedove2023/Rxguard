@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
  * Creates the table for storing drug information extracted from prescriptions.
  * Also creates related tables: drug_alternatives, drug_interactions, prescription_drugs
  * Each row is one drug line extracted from a prescription.
- * Enriched with EMDEX monograph data and OpenFDA brand listings.
+ * Enriched with OpenFDA monograph data and EMDEX Nigerian brand listings.
  */
 return new class extends Migration
 {

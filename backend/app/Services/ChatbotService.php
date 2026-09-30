@@ -368,8 +368,8 @@ PROMPT;
     {
         $sources = [];
         if (!empty($drugContext)) {
-            $sources[] = 'EMDEX Nigerian Brand Registry';
-            $sources[] = 'OpenFDA Drug Database';
+            $sources[] = 'EMDEX Nigerian Brand Registry and Interaction Checks';
+            $sources[] = 'OpenFDA Drug Monographs and Pregnancy-Risk Data';
         }
         if (!empty($detectedDrugs)) {
             $sources[] = 'Gemini AI (grounded response)';

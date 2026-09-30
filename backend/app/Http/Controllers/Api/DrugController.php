@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Validator;
 // DrugController
 // GET  /api/drug/{name}         Drug info from EMDEX + OpenFDA
 // POST /api/drug/interactions   Check interaction between two drugs
-// GET  /api/drug/brands/{name}  Nigerian brand list from EMDEX/OpenFDA
+// GET  /api/drug/brands/{name}  Nigerian brand list from EMDEX
 // ====================================================================
 class DrugController extends Controller
 {

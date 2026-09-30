@@ -47,7 +47,7 @@ class PrescriptionDrug extends Model
     }
 
     /**
-     * Return an array of Nigerian brand names from OpenFDA data.
+    * Return Nigerian brand names supplied by EMDEX.
      */
     public function getBrandNamesAttribute(): array
     {

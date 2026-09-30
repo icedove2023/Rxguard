@@ -291,7 +291,7 @@ const DrugInteractionEngine = {
   ──────────────────────────────────────────────────────────── */
 
   /**
-   * Fetch full drug monograph including contraindications from EMDEX.
+  * Fetch full drug monograph including contraindications from OpenFDA.
    *
    * @param  {string}  drugName
    * @returns {Promise<object>}   Full monograph data object or null if not found.
@@ -317,7 +317,7 @@ const DrugInteractionEngine = {
   ──────────────────────────────────────────────────────────── */
 
   /**
-   * Fetch Nigerian brand names for a generic drug via OpenFDA.
+  * Fetch Nigerian brand names for a generic drug via EMDEX.
    *
    * @param  {string}  drugName
    * @returns {Promise<Array<{brand_name: string, manufacturer?: string}>>}

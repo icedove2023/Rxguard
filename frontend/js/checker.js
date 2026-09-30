@@ -451,7 +451,7 @@ function renderMonograph(drug) {
 
     ${brands.length ? `
       <div class="mono-section">
-        <div class="mono-label">🇳🇬 Nigerian Brands (OpenFDA)</div>
+        <div class="mono-label">🇳🇬 Nigerian Brands (EMDEX)</div>
         <div style="display:flex;flex-wrap:wrap;gap:.4rem">
           ${brands.slice(0,8).map(b => `
             <span class="badge" style="background:var(--rx-green-light);color:var(--rx-green-dark)">
@@ -467,7 +467,7 @@ function renderMonograph(drug) {
       </div>` : ''}
 
     <div style="margin-top:var(--space-4);font-size:.75rem;color:var(--rx-muted)">
-      Source: EMDEX Nigeria Drug Database · OpenFDA Brand Registry
+      Sources: EMDEX Nigerian brand registry and interaction checks · OpenFDA drug monograph and pregnancy-risk data
     </div>`;
 }
 

@@ -168,8 +168,7 @@
     <div>
       <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:.25rem">Drug Interaction Checker</h1>
       <p style="font-size:.875rem;color:var(--rx-muted)">
-        Check interactions between multiple medications using the EMDEX Nigeria drug database
-        and OpenFDA brand registry. Enter at least 2 drugs.
+        Check medication interactions with EMDEX, review OpenFDA monographs, and find Nigerian brand alternatives from EMDEX. Enter at least 2 drugs.
       </p>
     </div>
 
@@ -253,7 +252,7 @@
                         background:var(--rx-surface-alt)">
               <p style="font-size:.75rem;color:var(--rx-muted);line-height:1.6;margin:0">
                 ⚕️ This tool is for informational purposes only. Results are sourced from
-                EMDEX Nigeria and OpenFDA. Always verify interactions with a qualified
+                EMDEX interaction checks and OpenFDA monograph data. Always verify interactions with a qualified
                 PCN-registered pharmacist or MDCN-registered physician before making
                 clinical decisions.
               </p>
@@ -343,8 +342,8 @@
         <div class="card">
           <div class="section-title">📚 Drug Monograph Lookup</div>
           <p style="font-size:.8125rem;color:var(--rx-muted);margin-bottom:var(--space-4);line-height:1.6">
-            Search the EMDEX database for full drug information: indications,
-            dosage, contraindications, pregnancy category, and Nigerian brand names.
+            Search OpenFDA for monograph details: indications, dosage, contraindications,
+            pregnancy information, and interaction warnings. Nigerian brand names come from EMDEX.
           </p>
           <form id="monographForm" style="display:flex;gap:.625rem">
             <input class="form-control" type="text" id="monographInput"
@@ -356,14 +355,17 @@
             <span style="font-size:.75rem;color:var(--rx-muted);width:100%;margin-bottom:.25rem">
               Quick lookup:
             </span>
-            
-            ${['Metformin','Warfarin','Paracetamol','Artemether','Lisinopril']
-              .map(d => `<button class="quick-chip" style="font-size:.75rem"
-                                onclick="lookupMonograph('${d}');
-                                         document.getElementById('monographInput').value='${d}'"
-                         >${d}</button>`).join('')}
-          
-                         </div>
+                <button type="button" class="quick-chip" style="font-size:.75rem"
+                  onclick="lookupMonograph('Metformin'); document.getElementById('monographInput').value='Metformin'">Metformin</button>
+                <button type="button" class="quick-chip" style="font-size:.75rem"
+                  onclick="lookupMonograph('Warfarin'); document.getElementById('monographInput').value='Warfarin'">Warfarin</button>
+                <button type="button" class="quick-chip" style="font-size:.75rem"
+                  onclick="lookupMonograph('Paracetamol'); document.getElementById('monographInput').value='Paracetamol'">Paracetamol</button>
+                <button type="button" class="quick-chip" style="font-size:.75rem"
+                  onclick="lookupMonograph('Artemether'); document.getElementById('monographInput').value='Artemether'">Artemether</button>
+                <button type="button" class="quick-chip" style="font-size:.75rem"
+                  onclick="lookupMonograph('Lisinopril'); document.getElementById('monographInput').value='Lisinopril'">Lisinopril</button>
+              </div>
         </div>
 
         <!-- Session history -->
@@ -388,11 +390,11 @@
           <div style="display:flex;flex-direction:column;gap:.625rem">
             <div style="display:flex;align-items:center;gap:.625rem;font-size:.8125rem">
               <span class="badge badge-info">EMDEX</span>
-              Nigerian Brand Registry (generics → brands)
+              Nigerian brand registry + interaction checks
               </div>
             <div style="display:flex;align-items:center;gap:.625rem;font-size:.8125rem">
               <span class="badge badge-success">OpenFDA</span>
-              Nigerian Drug Monograph & Interaction Database
+              Drug monograph + pregnancy-risk data
 
             </div>
             <div style="display:flex;align-items:center;gap:.625rem;font-size:.8125rem">

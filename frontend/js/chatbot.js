@@ -213,7 +213,7 @@ function newSession() {
 
 function appendWelcomeMessage() {
   appendBotMessage(
-    `Hello! I'm the **RxGuard AI Healthcare Assistant**.\n\nI can help you with:\n• Medication information and usage\n• Drug interactions and side effects\n• Nutrition advice related to medications\n• Nigerian drug brand equivalents\n• General wellness and lifestyle guidance\n\nAll my answers are grounded in the **EMDEX Nigeria** drug database and **OpenFDA** brand registry. I never guess — if I don't have verified data, I'll tell you.\n\nHow can I help you today?`,
+    `Hello! I'm the **RxGuard AI Healthcare Assistant**.\n\nI can help you with:\n• Medication information and usage\n• Drug interactions and side effects\n• Nutrition advice related to medications\n• Nigerian drug brand equivalents\n• General wellness and lifestyle guidance\n\nMy medication answers use **OpenFDA** drug monographs and pregnancy-risk information, plus **EMDEX** Nigerian brand data and interaction checks. I never guess — if I don't have verified data, I'll tell you.\n\nHow can I help you today?`,
     ['EMDEX Nigeria', 'OpenFDA']
   );
 }

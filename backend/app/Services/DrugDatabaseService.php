@@ -98,9 +98,8 @@ class DrugDatabaseService
     // ----------------------------------------------------------------
 
     /**
-     * Check interactions between a list of drug names.
-     * Uses openfda interaction database as primary source,
-     * with Gemini as fallback for unlisted combinations.
+    * Check interactions between a list of drug names using EMDEX.
+    * OpenFDA monograph data is used separately for pregnancy-risk checks.
      *
      * @param  string[] $drugs
      * @param  array    $patientFlags  ['pregnant' => bool, 'age' => int]
