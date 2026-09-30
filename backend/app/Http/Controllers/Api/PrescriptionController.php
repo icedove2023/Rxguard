@@ -332,7 +332,7 @@ class PrescriptionController extends Controller
     public function index(Request $request): JsonResponse
     {
         $prescriptions = Prescription::forUser($request->user()->id)
-            ->where('is_archived', false)
+            ->whereRaw('is_archived = FALSE')
             ->with(['drugs', 'interactions'])
             ->orderByDesc('created_at')
             ->paginate(15);
@@ -405,7 +405,7 @@ class PrescriptionController extends Controller
         // Status can be: 'completed' (needs review), 'flagged' (needs attention)
         $prescriptions = Prescription::whereIn('status', ['completed', 'flagged'])
             ->whereNull('reviewed_by')  // Not yet reviewed
-            ->where('is_archived', false)
+            ->whereRaw('is_archived = FALSE')
             ->with(['user', 'drugs', 'interactions'])
             ->orderByRaw("CASE WHEN status = 'flagged' THEN 0 ELSE 1 END") // Flagged first
             ->orderByDesc('created_at')
