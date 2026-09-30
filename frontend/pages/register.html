@@ -512,7 +512,7 @@ document.getElementById('consumerForm').addEventListener('submit', async functio
     }
   } catch (err) {
     if (err.validationErrors) App.FormHelper.applyApiErrors(err.allFieldErrors());
-    else showFormError('consumer', err.message || 'Registration failed. Please try again.');
+    else showRegistrationError('consumer', err);
     App.FormHelper.setLoading('consumerBtn', false, 'Create Consumer Account');
   }
 });
@@ -564,12 +564,24 @@ document.getElementById('professionalForm').addEventListener('submit', async fun
     }
   } catch (err) {
     if (err.validationErrors) App.FormHelper.applyApiErrors(err.allFieldErrors());
-    else showFormError('professional', err.message || 'Registration failed. Please try again.');
+    else showRegistrationError('professional', err);
     App.FormHelper.setLoading('professionalBtn', false, 'Create Professional Account');
   }
 });
 
 /* ── Error helpers ── */
+function showRegistrationError(prefix, err) {
+  const message = err.message || 'Registration failed. Please try again.';
+  const reference = err.requestId ? ` Reference: ${err.requestId}` : '';
+
+  console.error('Registration request failed', {
+    status: err.status ?? 0,
+    requestId: err.requestId ?? null,
+    message,
+  });
+  showFormError(prefix, `${message}${reference}`);
+}
+
 function showFormError(prefix, msg) {
   document.getElementById(prefix + 'Error').style.display   = 'flex';
   document.getElementById(prefix + 'ErrorMsg').textContent  = msg;

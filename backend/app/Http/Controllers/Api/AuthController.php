@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -48,6 +49,15 @@ class AuthController extends Controller
     // ----------------------------------------------------------------
     public function register(Request $request): JsonResponse
     {
+        $requestId = (string) Str::uuid();
+        $logContext = [
+            'request_id' => $requestId,
+            'role' => $request->input('role'),
+            'email_hash' => hash('sha256', mb_strtolower(trim((string) $request->input('email')))),
+        ];
+
+        Log::info('Registration request received', $logContext);
+
         $validator = Validator::make($request->all(), [
             'name'           => ['required', 'string', 'min:2', 'max:120'],
             'email'          => ['required', 'email:rfc,dns', 'unique:users,email', 'max:180'],
@@ -64,11 +74,29 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
+            Log::info('Registration validation failed', [
+                ...$logContext,
+                'error_fields' => array_keys($validator->errors()->toArray()),
+            ]);
+
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Validation failed',
                 'errors'  => $validator->errors(),
+                'request_id' => $requestId,
             ], 422);
+        }
+
+        Log::info('Registration validation passed', $logContext);
+
+        if (!$this->supabase->isConfigured()) {
+            Log::error('Registration Supabase configuration missing', $logContext);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Registration service is temporarily unavailable.',
+                'request_id' => $requestId,
+            ], 503);
         }
 
         // Create the identity in Supabase Auth first — this is what
@@ -76,27 +104,54 @@ class AuthController extends Controller
         // (e.g. email already registered on the Supabase side, weak
         // password per Supabase's own policy), nothing local is created.
         try {
+            Log::info('Registration Supabase signup started', $logContext);
             $signUp = $this->supabase->signUp($request->email, $request->password, [
                 'name' => $request->name,
                 'role' => $request->role,
             ], $request->input('client', 'web'));
         } catch (SupabaseAuthException $e) {
+            Log::warning('Registration Supabase signup rejected', [
+                ...$logContext,
+                'upstream_status' => $e->getStatusCode(),
+            ]);
+
             return response()->json([
                 'status'  => 'error',
                 'message' => $e->getMessage(),
+                'request_id' => $requestId,
             ], $e->getStatusCode() === 400 ? 422 : $e->getStatusCode());
+        } catch (\Throwable $e) {
+            Log::error('Registration Supabase signup failed unexpectedly', [
+                ...$logContext,
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Registration service is temporarily unavailable. Please try again.',
+                'request_id' => $requestId,
+            ], 502);
         }
+
+        Log::info('Registration Supabase signup completed', $logContext);
 
         $supabaseUser = $signUp['user'] ?? null;
 
         if (!$supabaseUser || empty($supabaseUser['id'])) {
+            Log::error('Registration Supabase response missing user id', $logContext);
+
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Registration failed. Please try again.',
-            ], 500);
+                'message' => 'Registration service returned an invalid response.',
+                'request_id' => $requestId,
+            ], 502);
         }
 
+        $session = $signUp['session'] ?? null;
+
         try {
+            Log::info('Registration local transaction started', $logContext);
             DB::beginTransaction();
 
             $user = User::create([
@@ -108,10 +163,15 @@ class AuthController extends Controller
                 // This local hash is random and never used to authenticate.
                 'password'    => Hash::make(Str::random(40)),
                 'role'        => $request->role,
-                'is_verified' => (bool) ($supabaseUser['email_confirmed_at'] ?? false),
+                // Use SQL boolean literals: Laravel binds PHP booleans as 0/1,
+                // which PostgreSQL rejects for boolean columns.
+                'is_verified' => DB::raw(!empty($supabaseUser['email_confirmed_at']) ? 'TRUE' : 'FALSE'),
+                'last_login_at' => $session && !empty($session['access_token']) ? now() : null,
+                'last_login_ip' => $session && !empty($session['access_token']) ? $request->ip() : null,
             ]);
 
             if (in_array($request->role, ['pharmacist', 'physician'])) {
+                Log::info('Registration professional profile creation started', $logContext);
                 ProfessionalProfile::create([
                     'user_id'        => $user->id,
                     'profession'     => $request->role,
@@ -124,31 +184,48 @@ class AuthController extends Controller
             AuditLog::record('user.register', $user->id, 'User', $user->id);
 
             DB::commit();
+            Log::info('Registration local transaction committed', $logContext);
         } catch (\Throwable $e) {
-            DB::rollBack();
-            report($e);
+            try {
+                if (DB::transactionLevel() > 0) {
+                    DB::rollBack();
+                }
+            } catch (\Throwable $rollbackException) {
+                Log::error('Registration transaction rollback failed', [
+                    ...$logContext,
+                    'exception' => get_class($rollbackException),
+                ]);
+            }
+
+            Log::error('Registration local persistence failed', [
+                ...$logContext,
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
 
             // Roll back the Supabase-side account too so the person can retry.
             try {
                 $this->supabase->adminDeleteUser($supabaseUser['id']);
-            } catch (\Throwable) {
+                Log::info('Registration Supabase user cleanup completed', $logContext);
+            } catch (\Throwable $cleanupException) {
                 // Non-fatal — worst case an orphaned Supabase user remains.
+                Log::error('Registration Supabase user cleanup failed', [
+                    ...$logContext,
+                    'exception' => get_class($cleanupException),
+                ]);
             }
 
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Registration failed. Please try again.',
+                'request_id' => $requestId,
             ], 500);
         }
 
         // Supabase's session is only issued immediately if the project has
         // email confirmations disabled. Otherwise the user must click the
         // confirmation link before they can log in.
-        $session = $signUp['session'] ?? null;
-
         if ($session && !empty($session['access_token'])) {
-            $user->update(['last_login_at' => now(), 'last_login_ip' => $request->ip()]);
-
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Account created successfully.',

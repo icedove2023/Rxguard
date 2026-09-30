@@ -14,8 +14,19 @@
 const LOCAL_API_BASE = 'http://localhost:8000/api/v1';
 const PRODUCTION_API_BASE = 'https://rxguard-us5h.onrender.com/api/v1';
 const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const API_BASE = (window.RXGUARD_CONFIG?.apiBase || (isLocalHost ? LOCAL_API_BASE : PRODUCTION_API_BASE))
+const configuredApiBase = typeof window.RXGUARD_CONFIG?.apiBase === 'string'
+  ? window.RXGUARD_CONFIG.apiBase.trim()
+  : '';
+const API_BASE = (configuredApiBase || (isLocalHost ? LOCAL_API_BASE : PRODUCTION_API_BASE))
+  .replace(/(?:\/api\/v1){2,}\/?$/i, '/api/v1')
   .replace(/\/+$/, '');
+
+function buildApiUrl(endpoint) {
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const hasApiVersion = /\/api\/v1$/i.test(API_BASE);
+  const alreadyVersioned = /^\/api\/v1(?:\/|$)/i.test(path);
+  return `${API_BASE}${hasApiVersion && alreadyVersioned ? path.slice('/api/v1'.length) : path}`;
+}
 const TOKEN_KEY    = 'rxguard_access_token';
 const REFRESH_KEY  = 'rxguard_refresh_token';
 const USER_KEY     = 'rxguard_user';
@@ -46,7 +57,7 @@ let _refreshPromise = null;   // Deduplicate concurrent refresh calls
  * @param {boolean} [retry=true] — retry once after token refresh
  */
 async function apiRequest(endpoint, options = {}, retry = true) {
-  const url     = `${API_BASE}${endpoint}`;
+  const url     = buildApiUrl(endpoint);
   const token   = TokenStore.getAccess();
 
   const headers = {
@@ -86,14 +97,18 @@ async function apiRequest(endpoint, options = {}, retry = true) {
   let data;
   const contentType = response.headers.get('Content-Type') || '';
   if (contentType.includes('application/json')) {
-    data = await response.json();
+    try {
+      data = await response.json();
+    } catch {
+      data = { message: 'The server returned an invalid response.' };
+    }
   } else {
     data = { message: await response.text() };
   }
 
   if (!response.ok) {
     const message = data.message || data.error || `Request failed (${response.status})`;
-    const error   = new RxGuardApiError(message, response.status, data.errors);
+    const error   = new RxGuardApiError(message, response.status, data.errors, data.request_id);
     throw error;
   }
 
@@ -134,11 +149,12 @@ async function attemptTokenRefresh() {
 // Custom error class
 // -----------------------------------------------------------------------
 class RxGuardApiError extends Error {
-  constructor(message, status = 0, validationErrors = null) {
+  constructor(message, status = 0, validationErrors = null, requestId = null) {
     super(message);
     this.name             = 'RxGuardApiError';
     this.status           = status;
     this.validationErrors = validationErrors;
+    this.requestId        = requestId;
   }
 
   /** Return the first validation error for a given field. */

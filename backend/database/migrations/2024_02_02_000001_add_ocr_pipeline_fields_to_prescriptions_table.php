@@ -38,11 +38,9 @@ return new class extends Migration
             $table->timestamp('approved_at')->nullable()->after('edit_source');
         });
 
-        // Laravel's enum() on Postgres is a CHECK constraint, not a native
-        // enum type — widen it to include the two new pipeline states.
-        DB::statement('ALTER TABLE prescriptions DROP CONSTRAINT IF EXISTS prescriptions_status_check');
-        DB::statement("ALTER TABLE prescriptions ADD CONSTRAINT prescriptions_status_check
-            CHECK (status IN ('pending','extracted','awaiting_review','processing','completed','flagged','approved'))");
+        $this->setStatusValues([
+            'pending', 'extracted', 'awaiting_review', 'processing', 'completed', 'flagged', 'approved',
+        ]);
     }
 
     public function down(): void
@@ -54,8 +52,20 @@ return new class extends Migration
             ]);
         });
 
-        DB::statement('ALTER TABLE prescriptions DROP CONSTRAINT IF EXISTS prescriptions_status_check');
-        DB::statement("ALTER TABLE prescriptions ADD CONSTRAINT prescriptions_status_check
-            CHECK (status IN ('pending','processing','completed','flagged','approved'))");
+        $this->setStatusValues(['pending', 'processing', 'completed', 'flagged', 'approved']);
+    }
+
+    private function setStatusValues(array $statuses): void
+    {
+        $driver = DB::getDriverName();
+
+        if ($driver === 'pgsql') {
+            $values = implode(',', array_map(static fn (string $status): string => "'{$status}'", $statuses));
+            DB::statement('ALTER TABLE prescriptions DROP CONSTRAINT IF EXISTS prescriptions_status_check');
+            DB::statement("ALTER TABLE prescriptions ADD CONSTRAINT prescriptions_status_check CHECK (status IN ({$values}))");
+        } elseif ($driver === 'mysql') {
+            $values = implode(',', array_map(static fn (string $status): string => "'{$status}'", $statuses));
+            DB::statement("ALTER TABLE prescriptions MODIFY status ENUM({$values}) NOT NULL DEFAULT 'pending'");
+        }
     }
 };
