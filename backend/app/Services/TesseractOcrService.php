@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Prescription;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -42,18 +43,33 @@ class TesseractOcrService
      */
     public function extractText(Prescription $prescription): array
     {
-        $fileContent = Storage::disk('private')->get($prescription->scan_path);
+        $disk = config('filesystems.prescription_disk');
+        $storage = Storage::disk($disk);
+
+        if (!$storage->exists($prescription->scan_path)) {
+            throw new FileNotFoundException('The uploaded prescription file was not found.');
+        }
+
+        try {
+            $fileContent = $storage->get($prescription->scan_path);
+        } catch (FileNotFoundException $e) {
+            throw $e;
+        }
 
         if (!$fileContent) {
-            throw new \RuntimeException("Cannot read file: {$prescription->scan_path}");
+            throw new \RuntimeException('The uploaded prescription file could not be read.');
         }
 
         $tmpDir = sys_get_temp_dir() . '/rxguard-ocr-' . uniqid('', true);
-        mkdir($tmpDir, 0700, true);
+        if (!mkdir($tmpDir, 0700, true) && !is_dir($tmpDir)) {
+            throw new \RuntimeException('Could not create a temporary OCR directory.');
+        }
 
         try {
             $sourcePath = $tmpDir . '/source.' . $prescription->file_type;
-            file_put_contents($sourcePath, $fileContent);
+            if (file_put_contents($sourcePath, $fileContent, LOCK_EX) !== strlen($fileContent)) {
+                throw new \RuntimeException('Could not write the temporary OCR input file.');
+            }
 
             $imagePaths = $prescription->file_type === 'pdf'
                 ? $this->rasterizePdf($sourcePath, $tmpDir)
@@ -109,8 +125,11 @@ class TesseractOcrService
 
         try {
             $imagick = new \Imagick();
+            $imagick->setResourceLimit(\Imagick::RESOURCETYPE_MEMORY, 128 * 1024 * 1024);
+            $imagick->setResourceLimit(\Imagick::RESOURCETYPE_MAP, 256 * 1024 * 1024);
+            $imagick->setResourceLimit(\Imagick::RESOURCETYPE_DISK, 512 * 1024 * 1024);
             $imagick->setResolution(300, 300);
-            $imagick->readImage($pdfPath);
+            $imagick->readImage($pdfPath . '[0-4]');
 
             foreach ($imagick as $index => $page) {
                 $page->setImageFormat('png');
@@ -127,8 +146,8 @@ class TesseractOcrService
             }
 
             $imagick->clear();
-        } catch (\ImagickException $e) {
-            throw new \RuntimeException('Failed to rasterize PDF for OCR: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('Failed to rasterize PDF for OCR.', 0, $e);
         }
 
         return $paths;
@@ -145,37 +164,24 @@ class TesseractOcrService
     {
         $outBase = $tmpDir . '/out-' . basename($imagePath, pathinfo($imagePath, PATHINFO_EXTENSION));
 
-        // Plain text output
+        // Request both outputs in one invocation to avoid doubling OCR time.
         $result = Process::timeout($this->timeoutSeconds)->run([
             $this->binary, $imagePath, $outBase,
             '-l', $this->language,
             '--psm', '6', // assume a single uniform block of text
+            'txt',
+            'tsv',
         ]);
 
         if ($result->failed()) {
             Log::error('Tesseract OCR failed', [
-                'error' => $result->errorOutput(),
-                'image' => basename($imagePath),
+                'exit_code' => $result->exitCode(),
             ]);
-            throw new \RuntimeException('Tesseract OCR process failed: ' . $result->errorOutput());
+            throw new \RuntimeException('Tesseract OCR process failed.');
         }
 
         $text = @file_get_contents($outBase . '.txt') ?: '';
-
-        // Second pass in TSV mode purely to compute a confidence score
-        // (Tesseract reports per-word confidence 0-100 in this format).
-        $confidence = null;
-
-        $tsvResult = Process::timeout($this->timeoutSeconds)->run([
-            $this->binary, $imagePath, $outBase,
-            '-l', $this->language,
-            '--psm', '6',
-            'tsv',
-        ]);
-
-        if ($tsvResult->successful()) {
-            $confidence = $this->averageConfidenceFromTsv($outBase . '.tsv');
-        }
+        $confidence = $this->averageConfidenceFromTsv($outBase . '.tsv');
 
         return [$text, $confidence];
     }

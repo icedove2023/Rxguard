@@ -75,6 +75,13 @@ RUN docker-php-ext-configure gd \
 RUN pecl install redis imagick && \
     docker-php-ext-enable redis imagick
 
+# Fail the image build if the OCR runtime is incomplete.
+RUN tesseract --version && \
+    tesseract --list-langs | grep -qx 'eng' && \
+    gs --version && \
+    if command -v magick >/dev/null 2>&1; then magick --version; else convert --version; fi && \
+    php -r 'exit(extension_loaded("imagick") ? 0 : 1);'
+
 # PHP-FPM and OPcache tuning
 COPY docker/php/php.ini         /usr/local/etc/php/conf.d/rxguard.ini
 COPY docker/php/opcache.ini     /usr/local/etc/php/conf.d/opcache.ini

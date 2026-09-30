@@ -108,7 +108,7 @@ async function apiRequest(endpoint, options = {}, retry = true) {
 
   if (!response.ok) {
     const message = data.message || data.error || `Request failed (${response.status})`;
-    const error   = new RxGuardApiError(message, response.status, data.errors, data.request_id);
+    const error   = new RxGuardApiError(message, response.status, data.errors, data.request_id, data.code);
     throw error;
   }
 
@@ -149,12 +149,13 @@ async function attemptTokenRefresh() {
 // Custom error class
 // -----------------------------------------------------------------------
 class RxGuardApiError extends Error {
-  constructor(message, status = 0, validationErrors = null, requestId = null) {
+  constructor(message, status = 0, validationErrors = null, requestId = null, code = null) {
     super(message);
     this.name             = 'RxGuardApiError';
     this.status           = status;
     this.validationErrors = validationErrors;
     this.requestId        = requestId;
+    this.code             = code;
   }
 
   /** Return the first validation error for a given field. */

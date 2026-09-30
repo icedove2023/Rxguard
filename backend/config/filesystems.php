@@ -15,6 +15,11 @@ return [
 
     'default' => env('FILESYSTEM_DISK', 'local'),
 
+    'prescription_disk' => env(
+        'PRESCRIPTION_STORAGE_DISK',
+        env('APP_ENV') === 'production' ? 'b2' : 'private'
+    ),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks
@@ -63,6 +68,19 @@ return [
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
             'report' => false,
+        ],
+
+        'b2' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION', 'us-east-005'),
+            'bucket' => env('AWS_BUCKET', 'rxguard-prescriptions'),
+            'url' => env('AWS_URL'),
+            'endpoint' => env('AWS_ENDPOINT', 'https://s3.us-east-005.backblazeb2.com'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'throw' => true,
+            'report' => true,
         ],
 
     ],

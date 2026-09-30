@@ -156,9 +156,14 @@ async function startScan() {
     showReviewScreen(extractRes.data);
 
   } catch (err) {
-    setProgressLabel(`⛔ ${err.message || 'Extraction failed. Please try again.'}`);
+    const operation = err.code === 'STORAGE_FAILED' || err.code === 'UPLOAD_FAILED'
+      ? 'Upload failed'
+      : err.code === 'OCR_TIMEOUT'
+        ? 'OCR timed out'
+        : 'Prescription processing failed';
+    setProgressLabel(`⛔ ${err.message || 'Please try again.'}`);
     setProgressBar(0, 'red');
-    RxGuard.Toast.error('Extraction failed', err.message || 'Please try again or use a clearer image.');
+    RxGuard.Toast.error(operation, err.message || 'Please try again or use a clearer image.');
     document.getElementById('retryScanBtn').style.display = 'inline-flex';
   }
 }

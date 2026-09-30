@@ -11,8 +11,12 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use Illuminate\Process\Exceptions\ProcessTimedOutException;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 /**
  * PrescriptionController
@@ -64,30 +68,73 @@ class PrescriptionController extends Controller
             ], 422);
         }
 
-        $file     = $request->file('prescription');
+        $file = $request->file('prescription');
         $fileType = strtolower($file->getClientOriginalExtension());
-        $path     = $file->store("prescriptions/{$request->user()->id}", 'private');
+        if ($fileType === 'jpeg') {
+            $fileType = 'jpg';
+        }
 
-        $prescription = Prescription::create([
-            'user_id'   => $request->user()->id,
-            'scan_path' => $path,
-            'file_type' => $fileType,
-            'status'    => 'pending',
-        ]);
+        $disk = config('filesystems.prescription_disk');
+        $path = null;
+        $prescription = null;
+        $stage = 'storage';
 
-        AuditLog::record(
-            'prescription.upload',
-            $request->user()->id,
-            'Prescription',
-            $prescription->id
-        );
+        try {
+            $path = $file->store("prescriptions/{$request->user()->id}", $disk);
+            if (!$path) {
+                throw new \RuntimeException('Storage did not return a file path.');
+            }
+
+            $stage = 'database';
+            DB::transaction(function () use ($request, $path, $fileType, &$prescription): void {
+                $prescription = Prescription::create([
+                    'user_id'   => $request->user()->id,
+                    'scan_path' => $path,
+                    'file_type' => $fileType,
+                    'status'    => 'pending',
+                ]);
+
+                AuditLog::record(
+                    'prescription.upload',
+                    $request->user()->id,
+                    'Prescription',
+                    $prescription->id
+                );
+            });
+        } catch (\Throwable $e) {
+            if ($path) {
+                try {
+                    Storage::disk($disk)->delete($path);
+                } catch (\Throwable) {
+                    Log::warning('Prescription upload cleanup failed', [
+                        'user_id' => $request->user()->id,
+                        'disk' => $disk,
+                    ]);
+                }
+            }
+
+            Log::error('Prescription upload failed', [
+                'user_id' => $request->user()->id,
+                'disk' => $disk,
+                'stage' => $stage,
+                'exception' => get_class($e),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'code' => $stage === 'storage' ? 'STORAGE_FAILED' : 'UPLOAD_FAILED',
+                'message' => $stage === 'storage'
+                    ? 'Prescription storage is temporarily unavailable. Please try again.'
+                    : 'The prescription could not be saved. Please try again.',
+            ], $stage === 'storage' ? 503 : 500);
+        }
 
         // Dispatch background OCR job
         // ProcessPrescription::dispatch($prescription);
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'Prescription uploaded. Processing will begin shortly.',
+            'message' => 'Prescription uploaded. It is ready for text extraction.',
             'data'    => [
                 'prescription_id' => $prescription->id,
                 'status'          => $prescription->status,
@@ -142,12 +189,42 @@ class PrescriptionController extends Controller
                     'pages'           => $ocrResult['pages'],
                 ],
             ]);
+        } catch (FileNotFoundException $e) {
+            Log::warning('Prescription OCR source file is missing', [
+                'prescription_id' => $prescription->id,
+                'user_id' => $request->user()->id,
+                'disk' => config('filesystems.prescription_disk'),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'code' => 'FILE_NOT_FOUND',
+                'message' => 'The uploaded prescription file could not be found. Please upload it again.',
+            ], 404);
+        } catch (ProcessTimedOutException $e) {
+            $prescription->update(['status' => 'flagged']);
+            Log::warning('Prescription OCR timed out', [
+                'prescription_id' => $prescription->id,
+                'user_id' => $request->user()->id,
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'code' => 'OCR_TIMEOUT',
+                'message' => 'Text extraction took too long. Try a clearer image or a shorter PDF.',
+            ], 504);
         } catch (\Throwable $e) {
             $prescription->update(['status' => 'flagged']);
-            report($e);
+            Log::error('Prescription OCR extraction failed', [
+                'prescription_id' => $prescription->id,
+                'user_id' => $request->user()->id,
+                'exception' => get_class($e),
+                'error' => $e->getMessage(),
+            ]);
 
             return response()->json([
                 'status'  => 'error',
+                'code' => 'OCR_FAILED',
                 'message' => 'OCR extraction failed. The file may be unreadable, or try a clearer photo/scan.',
             ], 500);
         }
@@ -298,7 +375,7 @@ class PrescriptionController extends Controller
     // ----------------------------------------------------------------
     // GET /api/prescriptions/{id}/scan
     // Streams the original scan file. Never publicly accessible — the
-    // file lives on the private disk and this route enforces auth +
+    // file lives on the configured private disk and this route enforces auth +
     // ownership (or professional/admin role) before serving it.
     // ----------------------------------------------------------------
     public function scan(Request $request, int $id): Response
@@ -312,7 +389,8 @@ class PrescriptionController extends Controller
             abort(403, 'You do not have permission to view this file.');
         }
 
-        if (!Storage::disk('private')->exists($prescription->scan_path)) {
+        $disk = config('filesystems.prescription_disk');
+        if (!Storage::disk($disk)->exists($prescription->scan_path)) {
             abort(404, 'Scan file not found.');
         }
 
@@ -323,7 +401,7 @@ class PrescriptionController extends Controller
             $prescription->id
         );
 
-        return Storage::disk('private')->response($prescription->scan_path);
+        return Storage::disk($disk)->response($prescription->scan_path);
     }
 
     // ----------------------------------------------------------------
