@@ -32,6 +32,34 @@ const STEPS = [
   { id:'step4', label:'Safety Report',     icon:'📋' },
 ];
 
+let pickerOpening = false;
+let pickerBlurred = false;
+let pickerFallbackTimer = null;
+
+function releaseFilePickerGuard() {
+  pickerOpening = false;
+  pickerBlurred = false;
+  if (pickerFallbackTimer !== null) {
+    clearTimeout(pickerFallbackTimer);
+    pickerFallbackTimer = null;
+  }
+  window.removeEventListener('blur', handlePickerBlur);
+  window.removeEventListener('focus', handlePickerFocus);
+  document.removeEventListener('visibilitychange', handlePickerVisibilityChange);
+}
+
+function handlePickerBlur() {
+  pickerBlurred = true;
+}
+
+function handlePickerFocus() {
+  if (pickerBlurred) releaseFilePickerGuard();
+}
+
+function handlePickerVisibilityChange() {
+  if (!document.hidden) releaseFilePickerGuard();
+}
+
 /* ─────────────────────────────────────────
    Drag-and-drop + file select
 ───────────────────────────────────────── */
@@ -40,8 +68,9 @@ function initUploadZone() {
   const input = document.getElementById('fileInput');
   if (!zone || !input) return;
 
-  // Click to open file picker
-  zone.addEventListener('click', () => input.click());
+  // Route each zone tap through one guarded picker path.
+  zone.addEventListener('click', openFilePicker);
+  input.addEventListener('click', event => event.stopPropagation());
 
   // Drag events
   zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
@@ -55,8 +84,23 @@ function initUploadZone() {
 
   // File input change
   input.addEventListener('change', () => {
+    releaseFilePickerGuard();
     if (input.files?.[0]) handleFileSelected(input.files[0]);
   });
+  input.addEventListener('cancel', releaseFilePickerGuard);
+}
+
+function openFilePicker() {
+  const input = document.getElementById('fileInput');
+  if (!input || pickerOpening) return;
+
+  pickerOpening = true;
+  pickerBlurred = false;
+  window.addEventListener('blur', handlePickerBlur);
+  window.addEventListener('focus', handlePickerFocus);
+  document.addEventListener('visibilitychange', handlePickerVisibilityChange);
+  pickerFallbackTimer = setTimeout(releaseFilePickerGuard, 60000);
+  input.click();
 }
 
 async function handleFileSelected(file) {
