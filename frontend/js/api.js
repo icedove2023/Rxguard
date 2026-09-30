@@ -11,7 +11,11 @@
 // -----------------------------------------------------------------------
 // Configuration
 // -----------------------------------------------------------------------
-const API_BASE     = (window.RXGUARD_CONFIG?.apiBase) || 'https://rxguard-us5h.onrender.com/api/v1'|| 'http://localhost:8000/api/v1';
+const LOCAL_API_BASE = 'http://localhost:8000/api/v1';
+const PRODUCTION_API_BASE = 'https://rxguard-us5h.onrender.com/api/v1';
+const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const API_BASE = (window.RXGUARD_CONFIG?.apiBase || (isLocalHost ? LOCAL_API_BASE : PRODUCTION_API_BASE))
+  .replace(/\/+$/, '');
 const TOKEN_KEY    = 'rxguard_access_token';
 const REFRESH_KEY  = 'rxguard_refresh_token';
 const USER_KEY     = 'rxguard_user';
