@@ -13,17 +13,18 @@
     .page-wrap { display:flex; flex:1; min-height:0; }
 
     .bmi-main {
-      flex:1; overflow-y:auto; padding:var(--space-8);
+      flex:1; min-width:0; overflow-y:auto; padding:var(--space-8);
       display:flex; flex-direction:column; gap:var(--space-6);
     }
 
     /* ── Two-column layout ── */
     .bmi-grid {
       display:grid;
-      grid-template-columns:1fr 1fr;
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr);
       gap:var(--space-6);
       align-items:start;
     }
+    .bmi-grid > * { min-width:0; }
 
     /* ── Live preview ring ── */
     .live-preview {
@@ -193,14 +194,25 @@
       border-radius:50%; margin-right:6px; vertical-align:middle;
     }
 
-    @media(max-width:900px)  { .bmi-grid { grid-template-columns:1fr; } }
+    @media(max-width:900px)  { .bmi-grid { grid-template-columns:minmax(0,1fr); } }
     @media(max-width:768px)  {
       .bmi-main  { padding:var(--space-4); gap:var(--space-4); }
       .rec-grid  { grid-template-columns:1fr; }
       .result-hero { flex-direction:column; align-items:flex-start; gap:var(--space-4); }
       .result-number { font-size:3rem; }
     }
-    @media(max-width:480px)  { .gender-select { grid-template-columns:1fr 1fr; } }
+    @media(max-width:480px)  {
+      .gender-select { grid-template-columns:1fr 1fr; }
+      .bmi-ref-table { table-layout:fixed; }
+      .bmi-ref-table th:nth-child(3),
+      .bmi-ref-table td:nth-child(3) { display:none; }
+      .bmi-ref-table th,
+      .bmi-ref-table td { padding:8px 6px; overflow-wrap:anywhere; }
+      .bmi-ref-table th:first-child,
+      .bmi-ref-table td:first-child { width:68%; }
+      .bmi-ref-table th:nth-child(2),
+      .bmi-ref-table td:nth-child(2) { width:32%; }
+    }
   </style>
 </head>
 <body>
@@ -290,8 +302,9 @@
         </div>
 
         <!-- BMI reference card -->
-        <div class="card" style="margin-top:var(--space-6)">
-          <div class="section-title">📊 BMI Reference</div>
+        <details class="card mobile-disclosure" open style="margin-top:var(--space-6)">
+          <summary class="section-title">📊 BMI Reference</summary>
+          <div class="mobile-disclosure-content">
           <table class="bmi-ref-table">
             <thead>
               <tr>
@@ -333,7 +346,8 @@
             bone density, or body fat distribution. Always consult an MDCN-registered physician
             for a comprehensive health assessment.
           </p>
-        </div>
+          </div>
+        </details>
       </div>
 
       <!-- ── Right: result + history ── -->

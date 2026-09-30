@@ -297,10 +297,11 @@
     <div class="bottom-grid">
 
       <!-- Recent activity -->
-      <div class="card">
-        <div class="card-header-row">
+      <details class="card mobile-disclosure" open>
+        <summary class="card-header-row">
           <span class="card-heading">📅 Recent Activity</span>
-        </div>
+        </summary>
+        <div class="mobile-disclosure-content">
         <div id="activityFeed">
           <div class="activity-item">
             <div class="activity-icon" style="background:var(--rx-blue-light)">📷</div>
@@ -327,39 +328,40 @@
         <a href="profile.html" class="btn btn-outline btn-sm btn-block" style="margin-top:var(--space-4)">
           View full activity log
         </a>
-      </div>
+        </div>
+      </details>
 
       <!-- BMI summary -->
-      <div class="card">
-        <div class="card-header-row">
+      <details class="card mobile-disclosure" open>
+        <summary class="card-header-row">
           <span class="card-heading">⚖️ BMI Summary</span>
-          <a href="bmi.html" style="font-size:.8125rem;color:var(--rx-blue);text-decoration:none;font-weight:500">
-            Calculate →
-          </a>
-        </div>
+        </summary>
+        <div class="mobile-disclosure-content">
+        <a href="bmi.html" style="font-size:.8125rem;color:var(--rx-blue);text-decoration:none;font-weight:500">Calculate →</a>
         <div id="bmiSummary">
           <div style="text-align:center;padding:1.5rem;color:var(--rx-muted)">
             <div class="spinner spinner-sm" style="margin:0 auto 1rem"></div>
             <div style="font-size:.875rem">Loading BMI data…</div>
           </div>
         </div>
-      </div>
+        </div>
+      </details>
 
       <!-- Medication summary / current drugs -->
-      <div class="card">
-        <div class="card-header-row">
+      <details class="card mobile-disclosure" open>
+        <summary class="card-header-row">
           <span class="card-heading">💊 Current Medications</span>
-          <a href="scan.html" style="font-size:.8125rem;color:var(--rx-blue);text-decoration:none;font-weight:500">
-            Add →
-          </a>
-        </div>
+        </summary>
+        <div class="mobile-disclosure-content">
+        <a href="scan.html" style="font-size:.8125rem;color:var(--rx-blue);text-decoration:none;font-weight:500">Add →</a>
         <div id="medicationList">
           <div style="text-align:center;padding:1.5rem;color:var(--rx-muted)">
             <div class="spinner spinner-sm" style="margin:0 auto 1rem"></div>
             <div style="font-size:.875rem">Loading medications…</div>
           </div>
         </div>
-      </div>
+        </div>
+      </details>
 
     </div>
 

@@ -494,6 +494,7 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 600; color: var(--rx-text); 
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
 .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: var(--space-4); }
 .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: var(--space-4); }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 1.5rem; }
 
 .mt-0  { margin-top: 0; }
 .mt-2  { margin-top: var(--space-2); }
@@ -708,17 +709,38 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 600; color: var(--rx-text); 
   .navbar-nav.mobile-open {
     display: flex;
     flex-direction: column;
-    position: absolute;
+    position: fixed;
     top: 64px;
-    left: 0;
     right: 0;
+    bottom: 0;
+    width: min(360px, 88vw);
     max-height: calc(100dvh - 64px);
     overflow-y: auto;
-    padding: var(--space-4);
+    padding: var(--space-6) var(--space-4) max(var(--space-6), env(safe-area-inset-bottom));
     background: var(--rx-surface);
-    border-bottom: 1px solid var(--rx-border);
-    box-shadow: var(--shadow-md);
-    z-index: var(--z-navbar);
+    border-left: 1px solid var(--rx-border);
+    border-top-left-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    z-index: calc(var(--z-navbar) + 1);
+    animation: mobileDrawerIn 220ms cubic-bezier(.2,.75,.25,1) both;
+  }
+  .navbar-nav.mobile-open::before {
+    content: 'NAVIGATION';
+    display: block;
+    padding: 0 var(--space-3) var(--space-3);
+    color: var(--rx-muted);
+    font-size: .6875rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+  }
+  .mobile-nav-backdrop.open {
+    display: block;
+    position: fixed;
+    inset: 64px 0 0;
+    z-index: calc(var(--z-navbar) - 1);
+    background: rgba(12, 22, 36, .46);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
   }
   .navbar-toggle{ display: block; }
   .navbar {
@@ -726,6 +748,18 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 600; color: var(--rx-text); 
     gap: var(--space-2);
   }
   .navbar-actions { margin-left: auto; gap: 4px; }
+  #navUser { display: none !important; }
+  #navGuest { display: none !important; }
+  .navbar-nav .mobile-user-action {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+  #navGuest { align-items: center; }
   .navbar-toggle { min-width: 40px; min-height: 40px; }
   .sidebar      { display: none; }
   .sidebar.open {
@@ -747,7 +781,45 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 600; color: var(--rx-text); 
   .container,
   .container-md { padding: 0 var(--space-4); }
   .page-main    { padding: var(--space-4); }
+  .navbar-nav .nav-link {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    padding: 10px var(--space-3);
+    border-bottom: 1px solid var(--rx-border);
+    border-radius: var(--radius-sm);
+    color: var(--rx-text);
+    font-size: .9375rem;
+  }
+  .navbar-nav .nav-link.active { background: var(--rx-blue-light); color: var(--rx-blue); }
+  body.mobile-nav-open { overflow: hidden; }
 }
+
+@keyframes mobileDrawerIn {
+  from { opacity: .75; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navbar-nav.mobile-open { animation: none; }
+}
+
+.mobile-user-action { display: none; }
+
+.mobile-disclosure > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.mobile-disclosure > summary::-webkit-details-marker { display: none; }
+.mobile-disclosure > summary::after {
+  content: '+';
+  margin-left: auto;
+  padding-left: var(--space-3);
+  color: var(--rx-muted);
+  font-size: 1.1rem;
+}
+.mobile-disclosure[open] > summary::after { content: '−'; }
+.mobile-disclosure-content { margin-top: var(--space-3); }
 
 @media (max-width: 480px) {
   .navbar { padding: 0 var(--space-3); }
@@ -756,6 +828,7 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 600; color: var(--rx-text); 
   #navGuest { gap: 4px !important; }
   #navGuest .btn { padding: 6px 8px; font-size: .75rem; }
   #themeToggle { width: 36px; min-width: 36px; padding: 6px !important; }
+  .feature-grid { grid-template-columns: minmax(0,1fr); }
   .btn-lg { padding: 12px 20px; font-size: 0.9375rem; }
   .modal  { padding: var(--space-6); }
 }

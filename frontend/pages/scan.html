@@ -13,17 +13,18 @@
     .page-wrap { display:flex; flex:1; min-height:0; }
 
     .scan-main {
-      flex:1; overflow-y:auto; padding:var(--space-8);
+      flex:1; min-width:0; overflow-y:auto; padding:var(--space-8);
       display:flex; flex-direction:column; gap:var(--space-6);
     }
 
     /* ── Two-column grid ── */
     .scan-grid {
       display:grid;
-      grid-template-columns:1.1fr 0.9fr;
+      grid-template-columns:minmax(0, 1.1fr) minmax(0, 0.9fr);
       gap:var(--space-6);
       align-items:start;
     }
+    .scan-grid > * { min-width:0; }
 
     /* ── File preview card ── */
     #filePreview {
@@ -159,12 +160,24 @@
       border-bottom:1px solid var(--rx-border);
     }
 
-    @media(max-width:960px) { .scan-grid { grid-template-columns:1fr; } }
+    @media(max-width:960px) { .scan-grid { grid-template-columns:minmax(0,1fr); } }
     @media(max-width:768px) {
       .scan-main { padding:var(--space-4); gap:var(--space-4); }
       .report-header { flex-direction:column; gap:var(--space-4); }
       .info-grid { grid-template-columns:1fr; }
     }
+    @media(max-width:480px) {
+      .scan-steps { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .scan-step { min-width:0; padding:var(--space-2); }
+      .scan-step:not(:last-child)::after { display:none; }
+      .step-label { font-size:.6875rem; }
+      .upload-zone { padding:var(--space-8) var(--space-4); }
+    }
+    .mobile-disclosure > summary { list-style:none; cursor:pointer; }
+    .mobile-disclosure > summary::-webkit-details-marker { display:none; }
+    .mobile-disclosure > summary::after { content:'+'; float:right; color:var(--rx-muted); font-size:1.1rem; }
+    .mobile-disclosure[open] > summary::after { content:'−'; }
+    .mobile-disclosure-content { margin-top:var(--space-4); }
   </style>
 </head>
 <body>
@@ -477,9 +490,9 @@
         </div>
 
         <!-- Scan tips -->
-        <div class="card">
-          <div class="section-title">💡 Tips for Best Results</div>
-          <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+        <details class="card mobile-disclosure" open>
+          <summary class="section-title">💡 Tips for Best Results</summary>
+          <div class="mobile-disclosure-content" style="display:flex;flex-direction:column;gap:var(--space-4)">
 
             <div style="display:flex;gap:var(--space-3);align-items:flex-start">
               <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px">📸</span>
@@ -522,15 +535,15 @@
             </div>
 
           </div>
-        </div>
+        </details>
 
         <!-- Data sources -->
-        <div class="card" style="padding:var(--space-4)">
-          <div style="font-size:.75rem;font-weight:700;color:var(--rx-muted);
+        <details class="card mobile-disclosure" open style="padding:var(--space-4)">
+          <summary style="font-size:.75rem;font-weight:700;color:var(--rx-muted);
                       text-transform:uppercase;letter-spacing:.5px;margin-bottom:var(--space-3)">
             Validation Sources
-          </div>
-          <div style="display:flex;flex-direction:column;gap:.5rem">
+          </summary>
+          <div class="mobile-disclosure-content" style="display:flex;flex-direction:column;gap:.5rem">
             <div style="display:flex;align-items:center;gap:.625rem;font-size:.8125rem">
               <span class="badge badge-info">Gemini AI</span> OCR extraction + field analysis
             </div>
@@ -545,7 +558,7 @@
             ⚕️ RxGuard is a decision-support tool. Always verify recommendations with a
             PCN-registered pharmacist before dispensing.
           </div>
-        </div>
+        </details>
 
       </div><!-- /right column -->
 

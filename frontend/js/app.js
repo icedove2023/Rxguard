@@ -86,21 +86,39 @@ const Navbar = (() => {
   function bindMobileToggle() {
     const toggle   = document.getElementById('navToggle');
     const navLinks = document.getElementById('navLinks');
+    const backdrop = document.getElementById('mobileNavBackdrop');
     if (!toggle || !navLinks) return;
 
+    toggle.setAttribute('aria-controls', 'navLinks');
+
+    const setOpen = open => {
+      navLinks.classList.toggle('mobile-open', open);
+      document.body.classList.toggle('mobile-nav-open', open);
+      backdrop?.classList.toggle('open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      navLinks.setAttribute('aria-hidden', String(!open && window.innerWidth <= 768));
+
+      if (open) navLinks.querySelector('.nav-link')?.focus({ preventScroll: true });
+      else toggle.focus({ preventScroll: true });
+    };
+
     toggle.addEventListener('click', () => {
-      const isOpen = navLinks.classList.contains('mobile-open');
-      navLinks.classList.toggle('mobile-open', !isOpen);
-      toggle.setAttribute('aria-expanded', String(!isOpen));
+      setOpen(!navLinks.classList.contains('mobile-open'));
     });
 
-    // Close on outside click
-    document.addEventListener('click', e => {
-      if (!toggle.contains(e.target) && !navLinks.contains(e.target)) {
-        navLinks.classList.remove('mobile-open');
-        toggle.setAttribute('aria-expanded', 'false');
-      }
+    backdrop?.addEventListener('click', () => setOpen(false));
+    navLinks.addEventListener('click', event => {
+      if (event.target.closest('.nav-link')) setOpen(false);
     });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && navLinks.classList.contains('mobile-open')) setOpen(false);
+    });
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768 && navLinks.classList.contains('mobile-open')) setOpen(false);
+      navLinks.setAttribute('aria-hidden', String(window.innerWidth <= 768));
+    });
+
+    navLinks.setAttribute('aria-hidden', String(window.innerWidth <= 768));
   }
 
   return { init, renderUserState };
@@ -287,6 +305,8 @@ function renderPagination(meta, onPage) {
 function injectNavbar() {
   const target = document.getElementById('navbarMount');
   if (!target) return;
+  const user = RxGuard.Auth.currentUser();
+  const isAdmin = user?.role === 'admin';
 
   target.innerHTML = `
     <nav class="navbar" role="navigation" aria-label="Main navigation">
@@ -302,10 +322,19 @@ function injectNavbar() {
         <a href="checker.html"   class="nav-link">Drug Checker</a>
         <a href="chatbot.html"   class="nav-link">AI Assistant</a>
         <a href="bmi.html"       class="nav-link">BMI</a>
+        ${user ? `
+          <a href="profile.html" class="nav-link mobile-user-action">👤 Profile</a>
+          ${isAdmin ? '<a href="admin.html" class="nav-link mobile-user-action">Admin</a>' : ''}
+          <button type="button" class="nav-link mobile-user-action" onclick="RxGuard.Auth.logout()">Sign Out</button>
+        ` : `
+          <a href="login.html" class="nav-link mobile-user-action">Sign In</a>
+          <a href="register.html" class="nav-link mobile-user-action">Get Started</a>
+        `}
       </div>
 
       <div class="navbar-actions">
-        <button id="themeToggle" class="btn btn-sm btn-outline" style="padding:6px 10px" title="Toggle dark mode">🌙</button>
+        <button id="themeToggle" class="btn btn-sm btn-outline" style="padding:6px 10px"
+          aria-label="Switch to dark theme" aria-pressed="false" title="Switch to dark theme">🌙</button>
 
         <div id="navGuest" style="display:flex;gap:8px">
           <a href="login.html"    class="btn btn-outline btn-sm">Sign In</a>
@@ -338,6 +367,7 @@ function injectNavbar() {
         <span style="font-size:1.4rem">☰</span>
       </button>
     </nav>
+    <div id="mobileNavBackdrop" class="mobile-nav-backdrop" aria-hidden="true"></div>
   `;
 }
 
@@ -409,6 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
     button.title = isDark ? 'Switch to light theme' : 'Switch to dark theme';
   };
   syncThemeToggle();
+  initMobileDisclosures();
   Navbar.init();
   Modal.init();
 
@@ -420,6 +451,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+function initMobileDisclosures() {
+  const disclosures = [...document.querySelectorAll('.mobile-disclosure')];
+  if (!disclosures.length) return;
+
+  const mobileQuery = window.matchMedia('(max-width: 768px)');
+  const sync = () => {
+    disclosures.forEach(disclosure => {
+      if (disclosure.dataset.userToggled) return;
+      disclosure.open = !mobileQuery.matches;
+    });
+  };
+
+  disclosures.forEach(disclosure => {
+    disclosure.addEventListener('toggle', () => {
+      if (disclosure.dataset.initialized) disclosure.dataset.userToggled = 'true';
+      disclosure.dataset.initialized = 'true';
+    });
+  });
+
+  sync();
+  mobileQuery.addEventListener('change', sync);
+}
 
 /* ─────────────────────────────────────────────
    11. Global error boundary

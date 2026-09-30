@@ -13,17 +13,18 @@
     .page-wrap { display:flex; flex:1; min-height:0; }
 
     .checker-main {
-      flex:1; overflow-y:auto; padding:var(--space-8);
+      flex:1; min-width:0; overflow-y:auto; padding:var(--space-8);
       display:flex; flex-direction:column; gap:var(--space-6);
     }
 
     /* ── Two-column layout ── */
     .checker-grid {
       display:grid;
-      grid-template-columns:1.1fr 0.9fr;
+      grid-template-columns:minmax(0,1.1fr) minmax(0,0.9fr);
       gap:var(--space-6);
       align-items:start;
     }
+    .checker-grid > * { min-width:0; }
 
     /* ── Drug input rows ── */
     .drug-input-row {
@@ -151,8 +152,12 @@
       border-bottom:1px solid var(--rx-border);
     }
 
-    @media(max-width:960px)  { .checker-grid { grid-template-columns:1fr; } }
+    @media(max-width:960px)  { .checker-grid { grid-template-columns:minmax(0,1fr); } }
     @media(max-width:768px)  { .checker-main { padding:var(--space-4); gap:var(--space-4); } }
+    @media(max-width:340px) {
+      .checker-actions { display:grid !important; grid-template-columns:minmax(0,1fr) 44px; }
+      .checker-actions .btn { min-width:0; white-space:normal; line-height:1.25; }
+    }
   </style>
 </head>
 <body>
@@ -210,7 +215,7 @@
           </div>
 
           <!-- Actions -->
-          <div style="display:flex;gap:.75rem;margin-top:var(--space-5)">
+          <div class="checker-actions" style="display:flex;gap:.75rem;margin-top:var(--space-5)">
             <button class="btn btn-primary" id="checkBtn" style="flex:1">
               🔍 Check Interactions
             </button>
