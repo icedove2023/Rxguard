@@ -338,17 +338,6 @@ function injectNavbar() {
         <span style="font-size:1.4rem">☰</span>
       </button>
     </nav>
-    <style>
-      @media(max-width:768px){
-        .navbar-nav.mobile-open{
-          display:flex!important;flex-direction:column;
-          position:absolute;top:64px;left:0;right:0;
-          background:var(--rx-surface);
-          padding:1rem;border-bottom:1px solid var(--rx-border);
-          z-index:var(--z-navbar);box-shadow:var(--shadow-md);
-        }
-      }
-    </style>
   `;
 }
 
@@ -410,6 +399,16 @@ function injectSidebar(activeItem = 'overview') {
 document.addEventListener('DOMContentLoaded', () => {
   Theme.init();
   injectNavbar();
+  const syncThemeToggle = () => {
+    const button = document.getElementById('themeToggle');
+    if (!button) return;
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    button.textContent = isDark ? '☀️' : '🌙';
+    button.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+    button.setAttribute('aria-pressed', String(isDark));
+    button.title = isDark ? 'Switch to light theme' : 'Switch to dark theme';
+  };
+  syncThemeToggle();
   Navbar.init();
   Modal.init();
 
@@ -417,8 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('click', e => {
     if (e.target.id === 'themeToggle' || e.target.closest('#themeToggle')) {
       Theme.toggle();
-      const btn = document.getElementById('themeToggle');
-      if (btn) btn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
+      syncThemeToggle();
     }
   });
 });

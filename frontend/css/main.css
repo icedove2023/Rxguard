@@ -81,9 +81,8 @@
   --z-navbar:   400;
 }
 
-/* Dark mode token overrides */
-@media (prefers-color-scheme: dark) {
-  :root {
+/* Theme tokens are controlled by Theme.init() and the visible theme toggle. */
+:root[data-theme="dark"] {
     --rx-bg:            #0F172A;
     --rx-surface:       #1E293B;
     --rx-surface-alt:   #263044;
@@ -93,12 +92,13 @@
     --rx-border:        #2D3E55;
     --rx-gray-50:       #1E293B;
     --rx-gray-100:      #263044;
+    --rx-gray-200:      #334155;
+    --rx-gray-300:      #475569;
     --rx-blue-light:    #162444;
     --rx-blue-xlight:   #0F1C35;
     --rx-green-light:   #0F2D24;
     --rx-red-light:     #2D1212;
     --rx-amber-light:   #2D1F08;
-  }
 }
 
 /* ---------------------------------------------------------------
@@ -477,8 +477,8 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 600; color: var(--rx-text); 
 .container-sm  { max-width: 640px;  margin: 0 auto; padding: 0 var(--space-8); }
 .container-md  { max-width: 800px;  margin: 0 auto; padding: 0 var(--space-8); }
 
-.page-layout   { display: flex; flex: 1; min-height: calc(100vh - 64px); }
-.page-main     { flex: 1; overflow-y: auto; padding: var(--space-8); }
+.page-layout   { display: flex; flex: 1; min-height: calc(100vh - 64px); min-width: 0; }
+.page-main     { flex: 1; min-width: 0; overflow-y: auto; padding: var(--space-8); }
 
 .flex          { display: flex; }
 .flex-col      { flex-direction: column; }
@@ -704,18 +704,43 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 600; color: var(--rx-text); 
 }
 
 @media (max-width: 768px) {
-  .navbar-nav   { display: none; }
+  .navbar-nav { display: none; }
+  .navbar-nav.mobile-open {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    max-height: calc(100dvh - 64px);
+    overflow-y: auto;
+    padding: var(--space-4);
+    background: var(--rx-surface);
+    border-bottom: 1px solid var(--rx-border);
+    box-shadow: var(--shadow-md);
+    z-index: var(--z-navbar);
+  }
   .navbar-toggle{ display: block; }
+  .navbar {
+    padding: 0 var(--space-4);
+    gap: var(--space-2);
+  }
+  .navbar-actions { margin-left: auto; gap: 4px; }
+  .navbar-toggle { min-width: 40px; min-height: 40px; }
   .sidebar      { display: none; }
   .sidebar.open {
     display: flex;
     position: fixed;
-    inset-y: 0; left: 0;
+    top: 64px; bottom: 0; left: 0;
     z-index: var(--z-modal);
     box-shadow: var(--shadow-lg);
     width: 260px;
-    padding-top: 72px;
+    max-width: calc(100vw - 48px);
+    padding-top: var(--space-4);
   }
+  .page-layout > :not(.sidebar) { min-width: 0; }
+  .page-main, .container, .container-sm, .container-md { min-width: 0; }
+  .table-wrap, .drug-table-wrap { max-width: 100%; }
   .form-row     { grid-template-columns: 1fr; }
   .grid-2,
   .grid-3       { grid-template-columns: 1fr; }
@@ -725,6 +750,12 @@ h1,h2,h3,h4,h5,h6 { line-height: 1.25; font-weight: 600; color: var(--rx-text); 
 }
 
 @media (max-width: 480px) {
+  .navbar { padding: 0 var(--space-3); }
+  .navbar-brand { gap: var(--space-2); font-size: 1.0625rem; }
+  .navbar-logo { width: 32px; height: 32px; }
+  #navGuest { gap: 4px !important; }
+  #navGuest .btn { padding: 6px 8px; font-size: .75rem; }
+  #themeToggle { width: 36px; min-width: 36px; padding: 6px !important; }
   .btn-lg { padding: 12px 20px; font-size: 0.9375rem; }
   .modal  { padding: var(--space-6); }
 }

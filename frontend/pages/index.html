@@ -33,6 +33,8 @@
   </div>
 
   <div class="navbar-actions">
+    <button id="themeToggle" class="btn btn-sm btn-outline" style="padding:6px 10px"
+            aria-label="Switch to dark theme" aria-pressed="false" title="Switch to dark theme">🌙</button>
     <div id="navGuest">
       <a href="login.html"    class="btn btn-outline btn-sm">Sign In</a>
       <a href="register.html" class="btn btn-primary btn-sm">Get Started</a>
@@ -284,23 +286,6 @@
       document.getElementById('navUser').style.display  = 'flex';
     }
 
-    // Mobile nav toggle
-    const toggle  = document.getElementById('navToggle');
-    const navLinks= document.getElementById('navLinks');
-    toggle.addEventListener('click', () => {
-      const isOpen = navLinks.style.display === 'flex';
-      navLinks.style.display = isOpen ? '' : 'flex';
-      navLinks.style.flexDirection = 'column';
-      navLinks.style.position      = 'absolute';
-      navLinks.style.top           = '64px';
-      navLinks.style.left          = '0';
-      navLinks.style.right         = '0';
-      navLinks.style.background    = 'var(--rx-surface)';
-      navLinks.style.padding       = '1rem';
-      navLinks.style.borderBottom  = '1px solid var(--rx-border)';
-      navLinks.style.zIndex        = '999';
-      toggle.setAttribute('aria-expanded', String(!isOpen));
-    });
   });
 </script>
 </body>
